@@ -3,12 +3,19 @@ import { parseInlineBlock } from "@/rules/inline";
 
 import { Block } from "./tokenizer";
 
-function parse(block: Block) {
+/**
+ * Parses a Block object by first processing block-level structures
+ * and then refining it into inline-level elements.
+ *
+ * @param {Block} block - The block structure to parse, containing text and delimiters.
+ */
+function parse(block: Block): void {
+  // Process block-level elements until all content is parsed
   while (block.pos < block.posMax) {
-    // 先解析 block
-    parseBlock(block);
+    parseBlock(block); // Parse the current block and update block position
   }
-  // 再细分 inline
+
+  // Once block parsing is complete, process inline-level elements
   parseInlineBlock(block);
 }
 
