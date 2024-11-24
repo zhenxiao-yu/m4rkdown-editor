@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown Parser Toy</title>
+    <title>M4rkdown - Simple MD Parser</title>
 
     <script type="module" src="/index.ts"></script>
 
@@ -114,8 +114,8 @@
             color: var(--text-color);
             border: 1px solid var(--border-color);
             border-radius: 5px;
-            padding: 0.5rem;
-            font-size: large;
+            padding: 0.3rem;
+            font-size: medium;
             font-weight: 600;
             cursor: pointer;
             transition: background-color 0.2s ease;
@@ -123,6 +123,8 @@
 
         .tab-button:hover {
             background-color: var(--button-hover);
+            scale: 1.1;
+            transition: 0.2s ease-in;
         }
 
         .tab-button.active {
