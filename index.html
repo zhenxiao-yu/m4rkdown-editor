@@ -12,70 +12,120 @@
     <link rel="stylesheet" href="/normalize.css" />
 
     <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --panel-color: #252526;
+            --header-color: #111111;
+            --accent-color: #37c3a7;
+            --text-color: #d4d4d4;
+            --border-color: #3c3c3c;
+            --button-bg: #333;
+            --button-hover: #555;
+            --scrollbar-bg: #2a2a2a;
+            --scrollbar-thumb: #555;
+            --scrollbar-thumb-hover: #777;
+            --font-family: 'Courier New', Courier, monospace;
+        }
+
         body {
-            background-color: #e6eaed;
-            padding: 25px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            padding: 0;
+            margin: 0;
+        }
+
+        header {
+            background-color: var(--header-color);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        header h1 {
+            margin: 0;
+            color: var(--accent-color);
+            font-size: 1.5rem;
+        }
+
+        header a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 1rem;
         }
 
         .container {
             display: flex;
             flex-direction: row;
             padding: 2rem;
-            gap: 4rem;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .left-panel,
+        .right-panel {
+            background-color: var(--panel-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
         }
 
         .left-panel {
-            width: 50%;
-        }
-
-        #proj-intro {
-            display: flex;
-            flex-direction: row;
-            gap: 1rem;
-        }
-
-        .right-panel {
-            width: 50%;
+            flex: 1;
         }
 
         #markdown-textarea {
-            width: 95%;
-            height: 68vh;
-            margin: 2rem 0;
-            padding: 0.5rem;
-            border: 0.1rem solid #d1d5db;
-            border-radius: 0.25rem;
+            width: 100%;
+            height: 65vh;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            font-family: var(--font-family);
+            font-size: 1rem;
+            resize: none;
+            overflow: auto;
+            box-sizing: border-box;
         }
 
         #markdown-textarea:focus {
-            border-color: #37c3a7;
+            border-color: var(--accent-color);
             outline: none;
+        }
+
+        .right-panel {
+            flex: 1.5;
         }
 
         .button-container {
             display: flex;
-            flex-wrap: nowrap;
-            gap: 2rem;
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
 
         .tab-button {
             flex: 1;
+            background-color: var(--button-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
             padding: 0.5rem;
-            margin: 0 0.25rem;
-            text-align: center;
-            border: 0.1rem solid transparent;
-            border-radius: 0.5rem 0.5rem 0 0;
-            box-shadow: 0.1rem rgba(0, 0, 0, 0.5);
             cursor: pointer;
-            background-color: #ffffff;
-            color: #47b7b7;
-            font-weight: bold;
-            font-size: 1rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .tab-button:hover {
+            background-color: var(--button-hover);
         }
 
         .tab-button.active {
-            background-color: #37c3a7;
-            color: #ffffff;
+            background-color: var(--accent-color);
+            color: #000;
         }
 
         .tab-content {
@@ -87,13 +137,33 @@
         }
 
         .content-box {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             padding: 1rem;
-            border: 0.1rem solid #d1d5db;
-            border-radius: 0.25rem;
-            height: 71vh;
-            overflow: auto;
+            height: 70vh;
+            overflow-y: auto;
             white-space: pre-wrap;
-            background-color: #ffffff;
+            font-family: var(--font-family);
+        }
+
+        /* Custom Scrollbar */
+        .content-box::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .content-box::-webkit-scrollbar-track {
+            background-color: var(--scrollbar-bg);
+        }
+
+        .content-box::-webkit-scrollbar-thumb {
+            background-color: var(--scrollbar-thumb);
+            border-radius: 5px;
+        }
+
+        .content-box::-webkit-scrollbar-thumb:hover {
+            background-color: var(--scrollbar-thumb-hover);
         }
 
         @media (max-width: 767px) {
@@ -102,73 +172,53 @@
                 gap: 1rem;
             }
 
-            .left-panel {
-                width: 100%;
-                padding-right: 0;
-            }
-
+            .left-panel,
             .right-panel {
-                width: 102%;
+                width: 100%;
             }
 
             #markdown-textarea {
-                height: 35vh;
-                margin: 1rem 0;
-            }
-
-            .button-container {
-                flex-direction: row;
-                gap: 0.25rem;
-            }
-
-            .tab-button {
-                font-size: 0.75rem;
+                height: 40vh;
             }
 
             .content-box {
-                height: 35vh;
-                font-size: 0.8rem;
+                height: 40vh;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="left-panel">
-            <a href="https://github.com/RylanBot/markdown-compiler-toy" target="_blank">
-                <div id="proj-intro">
-                    <h2>Markdown Parser Toy</h2>
-                    <svg aria-hidden="true" role="img" class="octicon octicon-mark-github d-block" viewBox="0 0 16 16"
-                        width="32" height="32" fill="currentColor"
-                        style="display:inline-block;user-select:none;vertical-align:text-bottom;overflow:visible">
-                        <path fill-rule="evenodd"
-                            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z">
-                        </path>
-                    </svg>
-                </div>
-            </a>
-            <textarea id="markdown-textarea" placeholder="Enter your markdown here..."></textarea>
+<header>
+    <h1>M4rkdown</h1>
+    <a href="https://github.com/zhenxiao-yu/m4rkdown-editor" target="_blank">
+        View on GitHub
+    </a>
+</header>
+
+<div class="container">
+    <div class="left-panel">
+        <textarea id="markdown-textarea" placeholder="Enter your markdown here..."></textarea>
+    </div>
+
+    <div class="right-panel">
+        <div class="button-container">
+            <button id="token-button" class="tab-button" onclick="switchTab('token')">Syntax Tree</button>
+            <button id="source-button" class="tab-button" onclick="switchTab('source')">Source Code</button>
+            <button id="html-button" class="tab-button" onclick="switchTab('html')">Rendered Page</button>
         </div>
 
-        <div class="right-panel">
-            <div class="button-container">
-                <button id="token-button" class="tab-button" onclick="switchTab('token')">Syntax Tree</button>
-                <button id="source-button" class="tab-button" onclick="switchTab('source')">Source Code</button>
-                <button id="html-button" class="tab-button" onclick="switchTab('html')">Rendered Page</button>
-            </div>
-
-            <div id="token-content" class="tab-content">
-                <div id="token-content-box" class="content-box"></div>
-            </div>
-            <div id="source-content" class="tab-content">
-                <div id="source-content-box" class="content-box"></div>
-            </div>
-            <div id="html-content" class="tab-content">
-                <div id="html-content-box" class="content-box"></div>
-            </div>
+        <div id="token-content" class="tab-content">
+            <div id="token-content-box" class="content-box json-viewer"></div>
+        </div>
+        <div id="source-content" class="tab-content">
+            <div id="source-content-box" class="content-box"></div>
+        </div>
+        <div id="html-content" class="tab-content">
+            <div id="html-content-box" class="content-box"></div>
         </div>
     </div>
+</div>
 </body>
 
 <script>
