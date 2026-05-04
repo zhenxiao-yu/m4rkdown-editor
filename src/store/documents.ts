@@ -1,6 +1,7 @@
 import { signal, computed } from '@preact/signals';
 import { loadStorage, saveStorage, type DocEntry, type StorageSchema } from '@/lib/storage';
 import { DEFAULT_MARKDOWN } from '@/constants';
+import { splitRatio } from './layout';
 
 function createDefaultDoc(): DocEntry {
     return {
@@ -40,7 +41,7 @@ function persist(): void {
         version: 1,
         activeDocId: activeDocId.value,
         theme: (document.documentElement.classList.contains('light') ? 'light' : 'dark'),
-        splitRatio: 0.5,
+        splitRatio: splitRatio.value,
         documents: documentsMap.value,
     });
 }

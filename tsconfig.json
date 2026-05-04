@@ -17,7 +17,7 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "main.tsx"],
+  "include": ["src", "main.tsx", "party"],
   "exclude": ["node_modules", "dist"],
   "ts-node": {
     "esm": true,

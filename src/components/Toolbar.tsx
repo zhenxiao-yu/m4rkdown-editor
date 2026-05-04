@@ -1,24 +1,36 @@
 import { EditorView } from '@codemirror/view';
 import { openSearchPanel } from '@codemirror/search';
+import { Link, Search, Focus, AlignCenter, PanelRight, Code, FileCode, Table, Minus } from 'lucide-react';
 import {
     boldCommand, italicCommand, strikethroughCommand,
     inlineCodeCommand, linkCommand, codeBlockCommand, tableCommand, hrCommand
 } from '@/lib/codemirror-commands';
 import { focusMode, typewriterMode, showOutline, toggleFocusMode, toggleTypewriterMode, toggleOutline } from '@/store/settings';
 
+// Icon sizes: toolbar actions = size 14, strokeWidth 2
+
 interface ToolbarProps { getView: () => EditorView | null; }
 
-interface FormatBtn { label: string; title: string; action: (v: EditorView) => void; bold?: boolean; italic?: boolean; mono?: boolean; strike?: boolean; }
+interface FormatBtn {
+    label: string | preact.JSX.Element;
+    tooltip: string;
+    shortcut?: string;
+    action: (v: EditorView) => void;
+    bold?: boolean;
+    italic?: boolean;
+    mono?: boolean;
+    strike?: boolean;
+}
 
 const FORMAT_BTNS: FormatBtn[] = [
-    { label: 'B',    title: 'Bold (Ctrl+B)',          action: boldCommand,          bold: true },
-    { label: 'I',    title: 'Italic (Ctrl+I)',         action: italicCommand,        italic: true },
-    { label: 'S',    title: 'Strikethrough',            action: strikethroughCommand, strike: true },
-    { label: '</>',  title: 'Inline code (Ctrl+`)',    action: inlineCodeCommand,    mono: true },
-    { label: '🔗',   title: 'Link (Ctrl+K)',           action: linkCommand },
-    { label: '```',  title: 'Code block (Ctrl+Shift+K)', action: codeBlockCommand,  mono: true },
-    { label: '⊞',    title: 'Insert table',            action: tableCommand },
-    { label: '─',    title: 'Horizontal rule',         action: hrCommand },
+    { label: 'B',   tooltip: 'Bold',        shortcut: 'Ctrl+B', action: boldCommand,          bold: true },
+    { label: 'I',   tooltip: 'Italic',       shortcut: 'Ctrl+I', action: italicCommand,        italic: true },
+    { label: 'S',   tooltip: 'Strikethrough',                    action: strikethroughCommand, strike: true },
+    { label: <Code size={14} strokeWidth={2} />, tooltip: 'Inline code', shortcut: 'Ctrl+`', action: inlineCodeCommand },
+    { label: <Link size={14} strokeWidth={2} />, tooltip: 'Link',        shortcut: 'Ctrl+K', action: linkCommand },
+    { label: <FileCode size={14} strokeWidth={2} />, tooltip: 'Code block', shortcut: 'Ctrl+Shift+K', action: codeBlockCommand },
+    { label: <Table size={14} strokeWidth={2} />, tooltip: 'Insert table',                    action: tableCommand },
+    { label: <Minus size={14} strokeWidth={2} />, tooltip: 'Horizontal rule',                 action: hrCommand },
 ];
 
 export function Toolbar({ getView }: ToolbarProps) {
@@ -42,21 +54,22 @@ export function Toolbar({ getView }: ToolbarProps) {
             flexShrink: 0,
             flexWrap: 'wrap',
         }}>
-            {/* Formatting buttons */}
             {FORMAT_BTNS.map((btn) => (
                 <button
-                    key={btn.title}
-                    title={btn.title}
+                    key={btn.tooltip}
+                    data-tooltip={btn.tooltip}
+                    data-tooltip-shortcut={btn.shortcut}
                     class="toolbar-btn"
                     onClick={() => run(btn.action)}
                     style={{
                         fontWeight: btn.bold ? 700 : 400,
                         fontStyle: btn.italic ? 'italic' : 'normal',
-                        fontFamily: btn.mono ? "'Courier New', monospace" : 'inherit',
-                        fontSize: btn.mono ? '10px' : '13px',
+                        fontFamily: (btn.bold || btn.italic || btn.strike) ? 'var(--font-ui)' : undefined,
+                        fontSize: (btn.bold || btn.italic || btn.strike) ? '13px' : undefined,
                         textDecoration: btn.strike ? 'line-through' : 'none',
+                        padding: '4px 8px',
                     }}
-                    aria-label={btn.title}
+                    aria-label={btn.tooltip}
                 >
                     {btn.label}
                 </button>
@@ -64,45 +77,48 @@ export function Toolbar({ getView }: ToolbarProps) {
 
             <div style={{ width: '1px', height: '18px', backgroundColor: 'var(--c-border)', margin: '0 4px', flexShrink: 0 }} />
 
-            {/* Find & Replace */}
             <button
                 class="toolbar-btn"
-                title="Find & Replace (Ctrl+H)"
+                data-tooltip="Find & Replace"
+                data-tooltip-shortcut="Ctrl+H"
                 aria-label="Find & Replace"
                 onClick={() => { const v = getView(); if (v) openSearchPanel(v); }}
+                style={{ padding: '4px 8px' }}
             >
-                🔍
+                <Search size={14} strokeWidth={2} />
             </button>
 
             <div style={{ width: '1px', height: '18px', backgroundColor: 'var(--c-border)', margin: '0 4px', flexShrink: 0 }} />
 
-            {/* Mode toggles */}
             <button
                 class={`toolbar-btn${isFocus ? ' toolbar-btn--active' : ''}`}
-                title={`Focus mode ${isFocus ? '(on)' : '(off)'}`}
+                data-tooltip="Focus Mode"
                 aria-label="Toggle focus mode"
                 aria-pressed={isFocus}
                 onClick={toggleFocusMode}
+                style={{ padding: '4px 8px' }}
             >
-                ◎
+                <Focus size={14} strokeWidth={2} />
             </button>
             <button
                 class={`toolbar-btn${isTypewriter ? ' toolbar-btn--active' : ''}`}
-                title={`Typewriter mode ${isTypewriter ? '(on)' : '(off)'}`}
+                data-tooltip="Typewriter Mode"
                 aria-label="Toggle typewriter mode"
                 aria-pressed={isTypewriter}
                 onClick={toggleTypewriterMode}
+                style={{ padding: '4px 8px' }}
             >
-                ↕
+                <AlignCenter size={14} strokeWidth={2} />
             </button>
             <button
                 class={`toolbar-btn${isOutline ? ' toolbar-btn--active' : ''}`}
-                title={`Document outline ${isOutline ? '(on)' : '(off)'}`}
+                data-tooltip="Document Outline"
                 aria-label="Toggle document outline"
                 aria-pressed={isOutline}
                 onClick={toggleOutline}
+                style={{ padding: '4px 8px' }}
             >
-                ≡
+                <PanelRight size={14} strokeWidth={2} />
             </button>
         </div>
     );

@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import { App } from './src/app';
 import './src/styles/main.css';
+import './src/styles/arena.css';
 
 // Handle shared document via URL hash
 import { readShareHash, clearShareHash } from './src/lib/share';

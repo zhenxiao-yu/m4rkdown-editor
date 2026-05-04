@@ -55,6 +55,8 @@ export default defineConfig({
                     'vendor-katex': ['katex'],
                     'vendor-hljs': ['highlight.js'],
                     'vendor-preact': ['preact', '@preact/signals'],
+                    'vendor-lucide': ['lucide-react'],
+                    'vendor-arena': ['partysocket'],
                 },
             },
         },

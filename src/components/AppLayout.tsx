@@ -1,4 +1,5 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
+import { Command, Swords, Home } from 'lucide-react';
 import { EditorPane } from './EditorPane';
 import { PreviewPane } from './PreviewPane';
 import { DocumentTabs } from './DocumentTabs';
@@ -8,8 +9,14 @@ import { StatusBar } from './StatusBar';
 import { UpdateBanner } from './UpdateBanner';
 import { ShareButton } from './ShareButton';
 import { OutlineSidebar } from './OutlineSidebar';
+import { ResizeHandle } from './ResizeHandle';
+import { CommandPalette } from './CommandPalette';
+import { ToastStack } from './Toast';
 import { activeDoc } from '@/store/documents';
 import { showOutline } from '@/store/settings';
+import { splitRatio } from '@/store/layout';
+import { openPalette } from '@/store/commandPalette';
+import { enterBattleMode, returnToMenu } from '@/store/appMode';
 
 // ── Service worker update detection ──────────────────────────────────
 let _swReg: ServiceWorkerRegistration | null = null;
@@ -33,6 +40,7 @@ if ('serviceWorker' in navigator) {
 export function AppLayout() {
     const docTitle = activeDoc.value?.title ?? '';
     const [showUpdate, setShowUpdate] = useState(false);
+    const ratio = splitRatio.value;
 
     if (!_swUpdateCallback) _swUpdateCallback = () => setShowUpdate(true);
 
@@ -41,45 +49,73 @@ export function AppLayout() {
         window.location.reload();
     }
 
+    // Global Ctrl+Shift+P → command palette
+    useEffect(() => {
+        function onKeyDown(e: KeyboardEvent) {
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
+                e.preventDefault();
+                openPalette();
+            }
+        }
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, []);
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
             {showUpdate && <UpdateBanner onUpdate={handleSwUpdate} />}
 
             {/* ── Header ── */}
-            <header style={{
-                backgroundColor: 'var(--c-header)',
-                borderBottom: '1px solid var(--c-border)',
-                padding: '0 16px',
-                height: '48px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexShrink: 0,
-                boxShadow: '0 1px 0 var(--c-border)',
-                gap: '12px',
-            }}>
+            <header class="app-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
-                    <span style={{ color: 'var(--c-accent)', fontWeight: 700, fontSize: '18px', letterSpacing: '-0.5px', flexShrink: 0 }}>
+                    <span style={{ color: 'var(--c-accent)', fontWeight: 700, fontSize: '18px', letterSpacing: '-0.5px', flexShrink: 0, fontFamily: 'var(--font-ui)' }}>
                         M4rkdown
                     </span>
                     {docTitle && (
-                        <span style={{ color: 'var(--c-muted)', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ color: 'var(--c-muted)', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-ui)' }}>
                             — {docTitle}
                         </span>
                     )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <button
+                        class="btn-icon"
+                        data-tooltip="Command Palette"
+                        data-tooltip-shortcut="Ctrl+Shift+P"
+                        aria-label="Open command palette"
+                        onClick={openPalette}
+                    >
+                        <Command size={15} strokeWidth={1.75} />
+                    </button>
                     <ShareButton />
+                    <button
+                        class="btn-icon"
+                        data-tooltip="Battle Mode"
+                        aria-label="Enter battle mode"
+                        onClick={enterBattleMode}
+                        style={{ color: '#ef4444', borderColor: 'var(--c-border)' }}
+                    >
+                        <Swords size={15} strokeWidth={1.75} />
+                    </button>
                     <ExportMenu />
                     <ThemeToggle />
+                    <button
+                        class="btn-icon"
+                        data-tooltip="Main Menu"
+                        aria-label="Return to main menu"
+                        onClick={returnToMenu}
+                    >
+                        <Home size={15} strokeWidth={1.75} />
+                    </button>
                     <a
                         href="https://github.com/zhenxiao-yu/m4rkdown-editor"
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label="View on GitHub"
                         class="btn-icon github-link"
-                        style={{ textDecoration: 'none', fontSize: '13px', padding: '4px 8px' }}
+                        data-tooltip="View on GitHub"
+                        style={{ textDecoration: 'none', fontSize: '13px', fontFamily: 'var(--font-ui)', padding: '4px 8px' }}
                     >
                         GitHub
                     </a>
@@ -91,9 +127,10 @@ export function AppLayout() {
 
             {/* ── Split pane + optional outline sidebar ── */}
             <div class="split-pane" style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-                <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
+                <div style={{ width: `${ratio * 100}%`, overflow: 'hidden', minWidth: 0, flexShrink: 0 }}>
                     <EditorPane />
                 </div>
+                <ResizeHandle />
                 <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
                     <PreviewPane />
                 </div>
@@ -107,12 +144,17 @@ export function AppLayout() {
             {/* ── Status bar ── */}
             <StatusBar />
 
+            {/* ── Overlays ── */}
+            <CommandPalette />
+            <ToastStack />
+
             <style>{`
                 @media (max-width: 480px) { .github-link { display: none; } }
                 @media (max-width: 767px) {
                     .split-pane { flex-direction: column !important; }
                     .split-pane > div { flex: none !important; height: calc(50vh - 56px) !important; overflow: hidden !important; }
                     .outline-panel { display: none !important; }
+                    .resize-handle { display: none !important; }
                 }
             `}</style>
         </div>

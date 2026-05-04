@@ -50,7 +50,7 @@ export function StatusBar() {
             flexShrink: 0,
             fontSize: '11px',
             color: 'var(--c-muted)',
-            fontFamily: "'Courier New', Courier, monospace",
+            fontFamily: 'var(--font-ui)',
             userSelect: 'none',
             overflowX: 'auto',
         }}>

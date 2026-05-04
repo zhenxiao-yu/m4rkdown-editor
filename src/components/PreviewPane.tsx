@@ -1,6 +1,8 @@
 import '@/styles/preview.css';
 import 'highlight.js/styles/github-dark.css';
 import 'katex/dist/katex.min.css';
+import { ChevronRight } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import { useRef, useEffect, useState } from 'preact/hooks';
 import { effect } from '@preact/signals';
 import { parsedHtml, activeTab, markdownSource } from '@/store/editor';
@@ -17,13 +19,13 @@ async function renderMermaid(divs: HTMLElement[]) {
     if (divs.length === 0) return;
     const { default: mermaid } = await import('mermaid');
     const isDark = !document.documentElement.classList.contains('light');
-    mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default', securityLevel: 'loose' });
+    mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default', securityLevel: 'strict' });
     for (const div of divs) {
         const src = decodeURIComponent(div.getAttribute('data-src') || '');
         const id = `mermaid-${Math.random().toString(36).slice(2, 8)}`;
         try {
             const { svg } = await mermaid.render(id, src);
-            div.innerHTML = svg;
+            div.innerHTML = DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } });
             div.className = 'mermaid-rendered';
         } catch {
             div.textContent = src;
@@ -60,7 +62,7 @@ function FrontmatterPanel({ data }: { data: Record<string, unknown> }) {
                     letterSpacing: '0.06em',
                 }}
             >
-                <span style={{ transform: open ? 'rotate(90deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s' }}>▶</span>
+                <ChevronRight size={13} style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }} />
                 Frontmatter
             </button>
             {open && (
@@ -102,7 +104,14 @@ function RenderedPreview() {
 
             setFrontmatter(fm);
             parseAsync(content)
-                .then((result) => setHtml(result || parsedHtml.value))
+                .then((result) => {
+                    const raw = result || parsedHtml.value;
+                    setHtml(DOMPurify.sanitize(raw, {
+                        ADD_TAGS: ['math', 'svg', 'use'],
+                        ADD_ATTR: ['xmlns', 'viewBox', 'fill', 'stroke', 'class', 'id', 'data-src'],
+                        FORCE_BODY: false,
+                    }));
+                })
                 .catch(() => setHtml(parsedHtml.value));
         });
         return stop;
@@ -143,7 +152,7 @@ export function PreviewPane() {
             borderLeft: '1px solid var(--c-border)',
         }}>
             <TabBar />
-            <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+            <div key={activeTab.value} style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
                 {activeTab.value === 'preview' && <RenderedPreview />}
                 {activeTab.value === 'tree'    && <SyntaxTreeTab />}
                 {activeTab.value === 'source'  && <SourceCodeTab />}

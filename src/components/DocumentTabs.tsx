@@ -1,9 +1,19 @@
-import { useState } from 'preact/hooks';
+import { useState, useEffect, useRef } from 'preact/hooks';
+import { Plus, X } from 'lucide-react';
+import autoAnimate from '@formkit/auto-animate';
 import { docList, activeDocId, setActiveDoc, createDoc, deleteDoc, updateDocTitle } from '@/store/documents';
+import { showToast } from '@/store/toast';
 
 export function DocumentTabs() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState('');
+    const tabListRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (tabListRef.current) {
+            autoAnimate(tabListRef.current, { duration: 150, easing: 'ease-out' });
+        }
+    }, []);
 
     const docs = docList.value;
     const activeid = activeDocId.value;
@@ -11,18 +21,29 @@ export function DocumentTabs() {
     function startRename(id: string, title: string) { setEditingId(id); setEditTitle(title); }
     function commitRename(id: string) { updateDocTitle(id, editTitle); setEditingId(null); }
 
+    function handleDelete(e: MouseEvent, id: string, title: string) {
+        e.stopPropagation();
+        if (confirm(`Delete "${title}"?`)) {
+            deleteDoc(id);
+            showToast(`"${title}" deleted`, 'info');
+        }
+    }
+
     return (
-        <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '2px',
-            padding: '0 8px',
-            backgroundColor: 'var(--c-surface-alt)',
-            borderBottom: '1px solid var(--c-border)',
-            overflowX: 'auto',
-            flexShrink: 0,
-            height: '36px',
-        }}>
+        <div
+            ref={tabListRef}
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px',
+                padding: '0 8px',
+                backgroundColor: 'var(--c-surface-alt)',
+                borderBottom: '1px solid var(--c-border)',
+                overflowX: 'auto',
+                flexShrink: 0,
+                height: '36px',
+            }}
+        >
             {docs.map((doc) => {
                 const isActive = doc.id === activeid;
                 return (
@@ -52,7 +73,7 @@ export function DocumentTabs() {
                                     borderRadius: '3px',
                                     padding: '1px 4px',
                                     fontSize: '12px',
-                                    fontFamily: 'inherit',
+                                    fontFamily: 'var(--font-ui)',
                                     outline: 'none',
                                 }}
                             />
@@ -78,46 +99,23 @@ export function DocumentTabs() {
                                 class="doc-tab__close"
                                 title={`Close "${doc.title}"`}
                                 aria-label={`Close ${doc.title}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (confirm(`Delete "${doc.title}"?`)) deleteDoc(doc.id);
-                                }}
+                                onClick={(e) => handleDelete(e as unknown as MouseEvent, doc.id, doc.title)}
                             >
-                                ×
+                                <X size={11} strokeWidth={2.5} />
                             </button>
                         )}
                     </div>
                 );
             })}
             <button
-                title="New document (Ctrl+N)"
+                class="btn-icon"
+                data-tooltip="New document"
+                data-tooltip-shortcut="Ctrl+N"
                 aria-label="New document"
                 onClick={createDoc}
-                style={{
-                    marginLeft: '4px',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    border: '1px solid var(--c-border)',
-                    backgroundColor: 'transparent',
-                    color: 'var(--c-muted)',
-                    cursor: 'pointer',
-                    fontSize: '16px',
-                    lineHeight: 1,
-                    flexShrink: 0,
-                    transition: 'all 0.1s',
-                }}
-                onMouseEnter={(e) => {
-                    const el = e.currentTarget as HTMLButtonElement;
-                    el.style.color = 'var(--c-accent)';
-                    el.style.borderColor = 'var(--c-accent)';
-                }}
-                onMouseLeave={(e) => {
-                    const el = e.currentTarget as HTMLButtonElement;
-                    el.style.color = 'var(--c-muted)';
-                    el.style.borderColor = 'var(--c-border)';
-                }}
+                style={{ marginLeft: '4px', padding: '3px 6px', flexShrink: 0, color: 'var(--c-muted)', borderColor: 'var(--c-border)' }}
             >
-                +
+                <Plus size={13} strokeWidth={2.5} />
             </button>
         </div>
     );
