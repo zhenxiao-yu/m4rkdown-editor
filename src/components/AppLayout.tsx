@@ -7,9 +7,11 @@ import { ExportMenu } from './ExportMenu';
 import { StatusBar } from './StatusBar';
 import { UpdateBanner } from './UpdateBanner';
 import { ShareButton } from './ShareButton';
+import { OutlineSidebar } from './OutlineSidebar';
 import { activeDoc } from '@/store/documents';
+import { showOutline } from '@/store/settings';
 
-// ── Service worker update detection ──────────────────────────────
+// ── Service worker update detection ──────────────────────────────────
 let _swReg: ServiceWorkerRegistration | null = null;
 let _swUpdateCallback: (() => void) | null = null;
 
@@ -32,9 +34,7 @@ export function AppLayout() {
     const docTitle = activeDoc.value?.title ?? '';
     const [showUpdate, setShowUpdate] = useState(false);
 
-    if (!_swUpdateCallback) {
-        _swUpdateCallback = () => setShowUpdate(true);
-    }
+    if (!_swUpdateCallback) _swUpdateCallback = () => setShowUpdate(true);
 
     function handleSwUpdate() {
         _swReg?.waiting?.postMessage({ type: 'SKIP_WAITING' });
@@ -58,31 +58,17 @@ export function AppLayout() {
                 boxShadow: '0 1px 0 var(--c-border)',
                 gap: '12px',
             }}>
-                {/* Brand + doc title */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
-                    <span style={{
-                        color: 'var(--c-accent)',
-                        fontWeight: 700,
-                        fontSize: '18px',
-                        letterSpacing: '-0.5px',
-                        flexShrink: 0,
-                    }}>
+                    <span style={{ color: 'var(--c-accent)', fontWeight: 700, fontSize: '18px', letterSpacing: '-0.5px', flexShrink: 0 }}>
                         M4rkdown
                     </span>
                     {docTitle && (
-                        <span style={{
-                            color: 'var(--c-muted)',
-                            fontSize: '13px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                        }}>
+                        <span style={{ color: 'var(--c-muted)', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             — {docTitle}
                         </span>
                     )}
                 </div>
 
-                {/* Actions */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     <ShareButton />
                     <ExportMenu />
@@ -103,7 +89,7 @@ export function AppLayout() {
             {/* ── Document tabs ── */}
             <DocumentTabs />
 
-            {/* ── Split pane ── */}
+            {/* ── Split pane + optional outline sidebar ── */}
             <div class="split-pane" style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
                 <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
                     <EditorPane />
@@ -111,29 +97,22 @@ export function AppLayout() {
                 <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
                     <PreviewPane />
                 </div>
+                {showOutline.value && (
+                    <div class="outline-panel" style={{ overflow: 'hidden' }}>
+                        <OutlineSidebar />
+                    </div>
+                )}
             </div>
 
             {/* ── Status bar ── */}
             <StatusBar />
 
             <style>{`
-                /* Header: hide GitHub link text on very small screens */
-                @media (max-width: 480px) {
-                    .github-link { display: none; }
-                }
-
-                /* Mobile: stack editor above preview */
-                /* Heights: 100vh - header(48) - tabs(36) - statusbar(28) = calc area */
-                /* Each pane = half of remaining */
+                @media (max-width: 480px) { .github-link { display: none; } }
                 @media (max-width: 767px) {
-                    .split-pane {
-                        flex-direction: column !important;
-                    }
-                    .split-pane > div {
-                        flex: none !important;
-                        height: calc(50vh - 56px) !important;
-                        overflow: hidden !important;
-                    }
+                    .split-pane { flex-direction: column !important; }
+                    .split-pane > div { flex: none !important; height: calc(50vh - 56px) !important; overflow: hidden !important; }
+                    .outline-panel { display: none !important; }
                 }
             `}</style>
         </div>

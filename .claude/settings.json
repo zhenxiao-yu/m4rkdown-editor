@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vitest *)",
+      "Bash(node -e \"const m = require\\('./node_modules/markdown-it-emoji/index.mjs'\\); console.log\\(Object.keys\\(m\\)\\)\")",
+      "Bash(node --input-type=module -e \"import * as m from './node_modules/markdown-it-emoji/index.mjs'; console.log\\(Object.keys\\(m\\)\\)\")",
+      "Bash(node --input-type=module -e \"import * as m from './node_modules/markdown-it-footnote/index.mjs'; console.log\\(Object.keys\\(m\\)\\)\")",
+      "Bash(node --input-type=module -e \"import * as m from './node_modules/markdown-it-container/index.mjs'; console.log\\(Object.keys\\(m\\)\\)\")",
+      "Bash(node --input-type=module -e \"import * as m from './node_modules/markdown-it-texmath/markdown-it-texmath.mjs'; console.log\\(Object.keys\\(m\\)\\)\")",
+      "Bash(node --input-type=module -e \"import * as m from 'markdown-it-texmath'; console.log\\(Object.keys\\(m\\)\\)\")"
+    ]
+  }
+}

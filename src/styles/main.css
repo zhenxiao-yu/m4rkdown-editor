@@ -209,3 +209,40 @@ body {
 
 .export-item:hover { background-color: var(--c-btn); }
 .export-item:focus-visible { outline: 2px solid var(--c-accent); }
+
+/* ─── Active toolbar toggle ─────────────────────────────────────── */
+.toolbar-btn--active {
+  background-color: var(--c-accent) !important;
+  color: var(--c-accent-fg) !important;
+  border-color: var(--c-accent) !important;
+}
+
+/* ─── Focus mode dim ─────────────────────────────────────────────── */
+.cm-focus-dim { opacity: 0.25 !important; transition: opacity 0.12s; }
+
+/* ─── CodeMirror search panel polish ────────────────────────────── */
+.cm-search { background: var(--c-surface) !important; border-top: 1px solid var(--c-border); padding: 6px 10px; }
+.cm-panel.cm-search input[type=text] {
+  background: var(--c-btn) !important;
+  color: var(--c-text) !important;
+  border: 1px solid var(--c-border) !important;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-family: inherit;
+  font-size: 12px;
+  outline: none;
+}
+.cm-panel.cm-search input[type=text]:focus { border-color: var(--c-accent) !important; }
+.cm-panel.cm-search button {
+  background: var(--c-btn) !important;
+  color: var(--c-text) !important;
+  border: 1px solid var(--c-border) !important;
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.cm-panel.cm-search button:hover { border-color: var(--c-accent) !important; color: var(--c-accent) !important; }
+.cm-panel.cm-search label { color: var(--c-muted); font-size: 11px; }
+.cm-panel.cm-search [name=close] { color: var(--c-muted) !important; font-size: 16px; cursor: pointer; background: none !important; border: none !important; }
+.cm-panel.cm-search [name=close]:hover { color: var(--c-danger) !important; }
