@@ -1,18 +1,47 @@
 {
-    "name": "markdown-parser-toy",
+    "name": "m4rkdown",
     "private": true,
-    "version": "1.0.0",
+    "version": "2.0.0",
+    "description": "A fast, beautiful, standalone markdown editor",
     "type": "module",
     "scripts": {
         "dev": "npx vite",
-        "build": "npx vite build"
+        "build": "npx vite build",
+        "preview": "npx vite preview",
+        "typecheck": "npx tsc --noEmit",
+        "test": "npx vitest run",
+        "test:watch": "npx vitest"
     },
     "devDependencies": {
+        "@types/highlight.js": "^9.12.4",
+        "@types/js-beautify": "^1.14.3",
         "@types/node": "^20.14.10",
-        "vite": "^5.3.4"
+        "typescript": "^6.0.3",
+        "vite": "^5.3.4",
+        "vitest": "^4.1.5"
     },
     "dependencies": {
+        "@codemirror/commands": "^6.10.3",
+        "@codemirror/lang-markdown": "^6.5.0",
+        "@codemirror/language": "^6.12.3",
+        "@codemirror/state": "^6.6.0",
+        "@codemirror/theme-one-dark": "^6.1.3",
+        "@codemirror/view": "^6.41.1",
+        "@preact/preset-vite": "^2.10.5",
+        "@preact/signals": "^2.9.0",
+        "@tailwindcss/vite": "^4.2.4",
+        "@types/markdown-it": "^14.1.2",
+        "autoprefixer": "^10.5.0",
+        "codemirror": "^6.0.2",
+        "highlight.js": "^11.11.1",
         "js-beautify": "^1.15.1",
-        "json-viewer-js": "^1.0.8"
+        "json-viewer-js": "^1.0.8",
+        "markdown-it": "^14.1.1",
+        "markdown-it-task-lists": "^2.1.1",
+        "postcss": "^8.5.13",
+        "preact": "^10.29.1",
+        "tailwindcss": "^4.2.4",
+        "vite-plugin-pwa": "^1.2.0",
+        "workbox-window": "^7.4.0"
     }
 }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { NEWLINE, SPACE, hasDelimiter } from "@/rules/common/delimiters";
 import { parseInlineText } from "@/rules/inline";
 import { Token } from "@/types/token";

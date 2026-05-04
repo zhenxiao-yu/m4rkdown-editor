@@ -1,0 +1,211 @@
+@import "tailwindcss";
+
+/* ─── Design tokens ─────────────────────────────────────────────── */
+:root {
+  --c-bg:          #1e1e1e;
+  --c-surface:     #252526;
+  --c-surface-alt: #1a1a1a;
+  --c-header:      #111111;
+  --c-text:        #d4d4d4;
+  --c-muted:       #888888;
+  --c-border:      #3c3c3c;
+  --c-btn:         #333333;
+  --c-btn-hover:   #505050;
+  --c-accent:      #f7df4b;
+  --c-accent-dark: #d4b800;
+  --c-accent-fg:   #000000;
+  --c-danger:      #ff4444;
+  --c-success:     #90d090;
+}
+
+html.light {
+  --c-bg:          #f5f5f4;
+  --c-surface:     #ffffff;
+  --c-surface-alt: #f0efee;
+  --c-header:      #e8e7e6;
+  --c-text:        #1c1917;
+  --c-muted:       #6b7280;
+  --c-border:      #d1d5db;
+  --c-btn:         #e7e5e4;
+  --c-btn-hover:   #d4d1cf;
+  --c-accent:      #d97706;
+  --c-accent-dark: #b45309;
+  --c-accent-fg:   #ffffff;
+  --c-danger:      #dc2626;
+  --c-success:     #16a34a;
+}
+
+/* ─── Globals ───────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+::-webkit-scrollbar              { width: 8px; height: 8px; }
+::-webkit-scrollbar-track        { background: var(--c-bg); }
+::-webkit-scrollbar-thumb        { background: var(--c-border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover  { background: var(--c-muted); }
+*                                { scrollbar-width: thin; scrollbar-color: var(--c-border) var(--c-bg); }
+
+body {
+  background-color: var(--c-bg);
+  color: var(--c-text);
+  font-family: 'Courier New', Courier, monospace;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── CodeMirror overrides ──────────────────────────────────────── */
+.cm-editor {
+  height: 100%;
+  font-size: 14px;
+}
+
+.cm-editor.cm-focused { outline: none; }
+
+.cm-scroller {
+  overflow: auto;
+  font-family: 'Courier New', Courier, monospace !important;
+}
+
+/* ─── Reusable button base ──────────────────────────────────────── */
+.btn-icon {
+  background: none;
+  border: 1px solid var(--c-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: var(--c-muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.btn-icon:hover {
+  color: var(--c-accent);
+  border-color: var(--c-accent);
+}
+
+.btn-icon:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+
+/* ─── Toolbar buttons ───────────────────────────────────────────── */
+.toolbar-btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--c-border);
+  background-color: var(--c-btn);
+  color: var(--c-text);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.1s, border-color 0.1s, color 0.1s;
+  user-select: none;
+}
+
+.toolbar-btn:hover {
+  background-color: var(--c-btn-hover);
+  border-color: var(--c-accent);
+  color: var(--c-accent);
+}
+
+.toolbar-btn:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+
+/* ─── Tab buttons ───────────────────────────────────────────────── */
+.tab-btn {
+  flex: 1;
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--c-border);
+  background-color: var(--c-btn);
+  color: var(--c-text);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.tab-btn:hover:not(.tab-btn--active) {
+  background-color: var(--c-btn-hover);
+}
+
+.tab-btn--active {
+  background-color: var(--c-accent) !important;
+  color: var(--c-accent-fg) !important;
+  border-color: var(--c-accent) !important;
+}
+
+.tab-btn:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
+
+/* ─── Document tab strip ─────────────────────────────────────────── */
+.doc-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  height: 28px;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.1s;
+  border-bottom: 2px solid transparent;
+}
+
+.doc-tab:hover:not(.doc-tab--active) {
+  background-color: var(--c-btn);
+}
+
+.doc-tab--active {
+  background-color: var(--c-surface);
+  border-bottom-color: var(--c-accent);
+}
+
+.doc-tab__close {
+  background: none;
+  border: none;
+  color: var(--c-muted);
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  border-radius: 3px;
+}
+
+.doc-tab__close:hover { color: var(--c-danger); }
+.doc-tab__close:focus-visible { outline: 2px solid var(--c-accent); }
+
+/* ─── Export dropdown ───────────────────────────────────────────── */
+.export-item {
+  background: none;
+  border: none;
+  color: var(--c-text);
+  padding: 8px 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+  transition: background 0.1s;
+}
+
+.export-item:hover { background-color: var(--c-btn); }
+.export-item:focus-visible { outline: 2px solid var(--c-accent); }

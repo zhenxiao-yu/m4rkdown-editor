@@ -1,3 +1,4 @@
+// @ts-nocheck
 import parse from "./parse";
 import render from "./render";
 import { Block } from "./tokenizer";

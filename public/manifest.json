@@ -1,0 +1,23 @@
+{
+    "name": "M4rkdown",
+    "short_name": "M4rkdown",
+    "description": "A fast, beautiful, standalone markdown editor",
+    "start_url": "/",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#1e1e1e",
+    "theme_color": "#111111",
+    "icons": [
+        {
+            "src": "/icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/favicon.ico",
+            "sizes": "48x48",
+            "type": "image/x-icon"
+        }
+    ]
+}

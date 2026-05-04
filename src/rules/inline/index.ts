@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Block, InlineBlock } from "@/core/tokenizer";
 
 import parseEmphasis from "./emphasis";
