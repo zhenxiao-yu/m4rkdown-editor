@@ -1,7 +1,6 @@
 import '@/styles/arena.css';
-import { useEffect } from 'preact/hooks';
 import { ArrowLeft } from 'lucide-react';
-import { openArena, arenaView } from '@/store/arena';
+import { arenaView } from '@/store/arena';
 import { returnToMenu } from '@/store/appMode';
 import { HomeView } from './arena/HomeView';
 import { LobbyView } from './arena/LobbyView';
@@ -12,8 +11,6 @@ import { ResultsView } from './arena/ResultsView';
 const SHOW_BACK = new Set(['home', 'lobby', 'results']);
 
 export function BattleLayout() {
-    useEffect(() => { openArena(); }, []);
-
     const view = arenaView.value;
 
     if (view === 'closed') {
