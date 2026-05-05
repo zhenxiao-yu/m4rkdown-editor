@@ -1,23 +1,36 @@
 {
     "name": "M4rkdown",
     "short_name": "M4rkdown",
-    "description": "A fast, beautiful, standalone markdown editor",
+    "description": "Fast, offline-first Markdown editor with real-time collab and typing arena",
     "start_url": "/",
     "display": "standalone",
     "orientation": "any",
-    "background_color": "#1e1e1e",
+    "background_color": "#111111",
     "theme_color": "#111111",
     "icons": [
+        {
+            "src": "/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
         {
             "src": "/icons/icon.svg",
             "sizes": "any",
             "type": "image/svg+xml",
-            "purpose": "any maskable"
-        },
-        {
-            "src": "/favicon.ico",
-            "sizes": "48x48",
-            "type": "image/x-icon"
+            "purpose": "any"
         }
     ]
 }

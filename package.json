@@ -6,7 +6,7 @@
     "type": "module",
     "scripts": {
         "dev": "npx vite",
-        "build": "node scripts/gen-og.mjs && npx tsc --noEmit && npx vite build",
+        "build": "node scripts/gen-icons.mjs && node scripts/gen-og.mjs && npx tsc --noEmit && npx vite build",
         "preview": "npx vite preview",
         "typecheck": "npx tsc --noEmit",
         "test": "npx vitest run",
@@ -19,6 +19,7 @@
         "@types/js-beautify": "^1.14.3",
         "@types/node": "^20.14.10",
         "partykit": "^0.0.115",
+        "sharp": "^0.34.5",
         "typescript": "^6.0.3",
         "vite": "^5.3.4",
         "vitest": "^4.1.5"
