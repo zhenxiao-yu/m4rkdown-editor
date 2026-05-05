@@ -4,7 +4,9 @@ import { generateWordQueue, wordProgress, wordScore } from '@/lib/game-engine';
 import type { WordDef } from '@/lib/game-engine';
 import { sfxPop, sfxMiss, sfxCombo, sfxCountdown, sfxGo, sfxSetMuted, sfxIsMuted } from '@/lib/sfx';
 import { recordGame, ACHIEVEMENTS, playerLevel } from '@/store/arena-stats';
+import { customWordList, clearCustomWords } from '@/store/custom-words';
 import { showToast } from '@/store/toast';
+import { WordImportModal } from './WordImportModal';
 
 const PARTICLE_COLORS = ['#f7df4b', '#22c55e', '#3b82f6', '#a855f7', '#f97316', '#ec4899'];
 
@@ -92,7 +94,7 @@ function resetSolo() {
 
 function startNewGame() {
   const seed = Math.floor(Math.random() * 0xFFFFFF);
-  soloWords.value      = generateWordQueue(seed);
+  soloWords.value      = generateWordQueue(seed, customWordList.value ?? undefined);
   soloHp.value         = 5;
   soloScore.value      = 0;
   soloCombo.value      = 0;
@@ -121,26 +123,54 @@ export function SoloPracticeView() {
 // ── Idle / start screen ───────────────────────────────────────────────
 
 function IdleScreen() {
+  const [showImport, setShowImport] = useState(false);
+  const customWords = customWordList.value;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 24, padding: 40, textAlign: 'center' }}>
-      <div style={{ fontSize: 48 }}>⚡</div>
-      <div style={{ fontWeight: 800, fontSize: 24, color: 'var(--c-accent)', fontFamily: 'var(--font-ui)' }}>Solo Survival</div>
-      <div style={{ fontSize: 14, color: 'var(--c-text-2)', maxWidth: 360, lineHeight: 1.6, fontFamily: 'var(--font-ui)' }}>
-        Words fall from the sky. Type them before they hit the ground.<br />
-        Miss 5 and it's game over. Survive 8 minutes to win!
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 340 }}>
-        <div class="arena-idle-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <InfoChip icon="🌊" label="9 Waves" sub="25s each" />
-          <InfoChip icon="💀" label="5 Lives" sub="miss = -1 HP" />
-          <InfoChip icon="⚡" label="Combo" sub="streak bonus" />
-          <InfoChip icon="⏱" label="8 min" sub="max duration" />
+    <>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 24, padding: 40, textAlign: 'center' }}>
+        <div style={{ fontSize: 48 }}>⚡</div>
+        <div style={{ fontWeight: 800, fontSize: 24, color: 'var(--c-accent)', fontFamily: 'var(--font-ui)' }}>Solo Survival</div>
+        <div style={{ fontSize: 14, color: 'var(--c-text-2)', maxWidth: 360, lineHeight: 1.6, fontFamily: 'var(--font-ui)' }}>
+          Words fall from the sky. Type them before they hit the ground.<br />
+          Miss 5 and it's game over. Survive 8 minutes to win!
         </div>
-        <button class="arena-btn-primary" style={{ marginTop: 8 }} onClick={startNewGame}>
-          ▶ Start Practice
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 340 }}>
+          <div class="arena-idle-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <InfoChip icon="🌊" label="9 Waves" sub="25s each" />
+            <InfoChip icon="💀" label="5 Lives" sub="miss = -1 HP" />
+            <InfoChip icon="⚡" label="Combo" sub="streak bonus" />
+            <InfoChip icon="⏱" label="8 min" sub="max duration" />
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <button class="arena-btn-primary" style={{ flex: 1 }} onClick={startNewGame}>
+              ▶ Start Practice
+            </button>
+            <button
+              class="btn-icon"
+              title="Import custom words"
+              aria-label="Import custom words"
+              onClick={() => setShowImport(true)}
+              style={{ flexShrink: 0, padding: '6px 12px' }}
+            >
+              📁
+            </button>
+          </div>
+          {customWords ? (
+            <div style={{ fontSize: 12, color: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              ✓ {customWords.length} custom words active
+              <button
+                onClick={clearCustomWords}
+                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 11, padding: 0 }}
+              >
+                clear
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
-    </div>
+      {showImport && <WordImportModal onClose={() => setShowImport(false)} />}
+    </>
   );
 }
 

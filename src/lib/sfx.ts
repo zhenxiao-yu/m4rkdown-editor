@@ -126,3 +126,13 @@ export function sfxWin() {
     osc(c, 'triangle', f, t + i * 0.1, 0.22, 0.1);
   });
 }
+
+/** Level-up ascending arpeggio + shimmer */
+export function sfxLevelUp() {
+  const c = ac(); if (!c) return;
+  const t = c.currentTime;
+  [440, 554, 659, 880].forEach((f, i) => {
+    osc(c, 'triangle', f, t + i * 0.08, 0.28, 0.12);
+  });
+  noise(c, t + 0.2, 0.18, 0.04);
+}

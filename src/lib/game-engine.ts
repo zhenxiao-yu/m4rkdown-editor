@@ -68,8 +68,22 @@ function getWave(elapsedMs: number): WaveConfig {
   return WAVES[idx];
 }
 
-function pickWordForTier(rng: () => number, tier: 1|2|3|4, used: Set<string>): string {
-  const pool = tier === 1 ? WORDS_T1 : tier === 2 ? WORDS_T2 : tier === 3 ? WORDS_T3 : WORDS_T4;
+type CustomTiers = Map<1|2|3|4, string[]> | null;
+
+function buildCustomTiers(words: string[]): CustomTiers {
+  const tiers = new Map<1|2|3|4, string[]>([[1,[]],[2,[]],[3,[]],[4,[]]]);
+  for (const w of words) {
+    const t: 1|2|3|4 = w.length <= 4 ? 1 : w.length <= 6 ? 2 : w.length <= 9 ? 3 : 4;
+    tiers.get(t)!.push(w);
+  }
+  return tiers;
+}
+
+function pickWordForTier(rng: () => number, tier: 1|2|3|4, used: Set<string>, custom: CustomTiers): string {
+  const customPool = custom?.get(tier);
+  const pool = (customPool && customPool.length > 0)
+    ? customPool
+    : (tier === 1 ? WORDS_T1 : tier === 2 ? WORDS_T2 : tier === 3 ? WORDS_T3 : WORDS_T4);
   let attempts = 0;
   while (attempts < 20) {
     const w = rngPick(rng, pool);
@@ -82,11 +96,12 @@ function pickWordForTier(rng: () => number, tier: 1|2|3|4, used: Set<string>): s
 // Pre-generate enough words for MAX_GAME_MS (8 minutes)
 const MAX_GAME_MS = 8 * 60_000;
 
-export function generateWordQueue(seed: number): WordDef[] {
+export function generateWordQueue(seed: number, customWords?: string[]): WordDef[] {
+  const custom = customWords && customWords.length >= 20 ? buildCustomTiers(customWords) : null;
   const rng    = mkRng(seed);
-  const words: WordDef[]  = [];
+  const words: WordDef[] = [];
   const used   = new Set<string>();
-  let   t      = 1500; // first word at 1.5s
+  let   t      = 1500;
   let   id     = 0;
 
   while (t < MAX_GAME_MS) {
@@ -94,17 +109,14 @@ export function generateWordQueue(seed: number): WordDef[] {
     const tier = rngPick(rng, wave.tiers);
 
     for (let b = 0; b < wave.wordsPerBatch; b++) {
-      const text = pickWordForTier(rng, tier, used);
-      // spread batch words with a small horizontal gap
+      const text = pickWordForTier(rng, tier, used, custom);
       let lane = rngInt(rng, 5, 85);
-      // avoid lanes too close to each other in the same batch
       if (b > 0) {
         const lastLane = words[words.length - 1]?.lane ?? 50;
         if (Math.abs(lane - lastLane) < 15) {
           lane = (lane + 20 + rngInt(rng, 0, 10)) % 80 + 5;
         }
       }
-
       words.push({
         id: `w${id++}`,
         text,

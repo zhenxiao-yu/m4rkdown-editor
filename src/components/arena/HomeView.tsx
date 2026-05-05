@@ -4,6 +4,7 @@ import {
   arenaError, arenaConnecting, arenaPublicRooms,
   arenaPlayerName, arenaIsHost, arenaPlayerColor, generateRoomCode,
 } from '@/store/arena';
+import { playerStats, playerLevel, playerXpInfo } from '@/store/arena-stats';
 import { connectToRoom, connectToBrowse, sendMsg } from '@/lib/partykit-client';
 import { SoloPracticeView } from './SoloPracticeView';
 
@@ -257,11 +258,50 @@ function MultiplayerView() {
   );
 }
 
+function PlayerProfileCard() {
+  const stats  = playerStats.value;
+  const level  = playerLevel.value;
+  const xpInfo = playerXpInfo.value;
+  const name   = arenaPlayerName.value || 'Adventurer';
+  const color  = stats.playerColor;
+
+  return (
+    <div class="player-profile-card">
+      <div class="player-avatar" style={{ background: color }}>
+        {name.slice(0, 2).toUpperCase()}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text)', fontFamily: 'var(--font-ui)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {name}
+          </span>
+          <div class="battle-level-badge" style={{ flexShrink: 0 }}>
+            <div class="battle-level-dot" style={{ background: level.color }} />
+            {level.title}
+          </div>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--c-muted)', marginBottom: 5, fontFamily: 'var(--font-ui)' }}>
+          {stats.totalXp.toLocaleString()} XP · {stats.totalGames} games{stats.bestWpm > 0 ? ` · Best ${stats.bestWpm} WPM` : ''}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div class="player-xp-bar-track" style={{ flex: 1 }}>
+            <div class="player-xp-bar-fill" style={{ width: `${xpInfo.pct * 100}%`, background: level.color }} />
+          </div>
+          <span style={{ fontSize: 10, color: 'var(--c-muted)', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)' }}>
+            {xpInfo.current}/{xpInfo.needed} XP
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function HomeView() {
   const current = homeTab.value;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      <PlayerProfileCard />
       <div style={{ display: 'flex', borderBottom: '1px solid var(--c-border)', padding: '0 20px', flexShrink: 0, background: 'var(--c-surface)' }}>
         <button style={tabStyle(current === 'solo')}  onClick={() => { homeTab.value = 'solo'; }}>⚡ Solo Practice</button>
         <button style={tabStyle(current === 'multi')} onClick={() => { homeTab.value = 'multi'; }}>⚔️ Multiplayer</button>

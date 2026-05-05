@@ -7,7 +7,7 @@ import {
 } from '@/store/arena';
 import { connectToRoom, sendMsg } from '@/lib/partykit-client';
 import type { SurvivalPlayer } from '@/lib/arena-types';
-import { sfxWin, sfxDead } from '@/lib/sfx';
+import { sfxWin, sfxDead, sfxLevelUp } from '@/lib/sfx';
 import { recordGame, ACHIEVEMENTS, playerLevel } from '@/store/arena-stats';
 import { showToast } from '@/store/toast';
 
@@ -65,6 +65,9 @@ export function ResultsView() {
   const myScore = useCountUp(me?.score ?? 0);
   const isSurvivor = me?.id === survivorId;
   const recordedRef = useRef(false);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [levelUpTitle, setLevelUpTitle] = useState('');
+  const [levelUpColor, setLevelUpColor] = useState('#f7df4b');
 
   useEffect(() => {
     if (isSurvivor) {
@@ -100,6 +103,16 @@ export function ResultsView() {
     });
 
     const didLevelUp = playerLevel.value !== prevLevel;
+    if (didLevelUp) {
+      const newLevel = playerLevel.value;
+      setLevelUpTitle(newLevel.title);
+      setLevelUpColor(newLevel.color);
+      setShowLevelUp(true);
+      sfxLevelUp();
+      confetti({ particleCount: 120, spread: 100, colors: [newLevel.color, '#ffffff', '#f7df4b'] });
+      setTimeout(() => setShowLevelUp(false), 2200);
+    }
+
     const toastDelay = didLevelUp ? 2400 : 0;
     newAchievements.forEach((id, i) => {
       const a = ACHIEVEMENTS.find(a => a.id === id);
@@ -247,6 +260,19 @@ export function ResultsView() {
           🔄 Play Again
         </button>
       </div>
+
+      {showLevelUp && (
+        <div class="arena-levelup-overlay" onClick={() => setShowLevelUp(false)}>
+          <div class="arena-levelup-badge">
+            <div style={{ fontSize: 64, marginBottom: 8 }}>⬆️</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: '#f7df4b', fontFamily: 'var(--font-ui)' }}>LEVEL UP!</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', marginTop: 8 }}>
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: levelUpColor }} />
+              <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--c-text)', fontFamily: 'var(--font-ui)' }}>{levelUpTitle}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
