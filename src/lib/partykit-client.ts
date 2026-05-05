@@ -72,7 +72,8 @@ export function connectToBrowse(): void {
 }
 
 export function sendMsg(msg: ClientMsg): void {
-  if (!socket || socket.readyState !== WebSocket.OPEN) return;
+  if (!socket) return;
+  // PartySocket buffers sends while CONNECTING — do not guard on readyState
   socket.send(JSON.stringify(msg));
 }
 
