@@ -2,6 +2,50 @@ import { signal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 import { generateWordQueue, wordProgress, wordScore } from '@/lib/game-engine';
 import type { WordDef } from '@/lib/game-engine';
+import { sfxPop, sfxMiss, sfxCombo, sfxCountdown, sfxGo } from '@/lib/sfx';
+
+const PARTICLE_COLORS = ['#f7df4b', '#22c55e', '#3b82f6', '#a855f7', '#f97316', '#ec4899'];
+
+function spawnParticles(el: HTMLDivElement, field: HTMLDivElement, color: string) {
+  const er = el.getBoundingClientRect();
+  const fr = field.getBoundingClientRect();
+  const cx = er.left - fr.left + er.width / 2;
+  const cy = er.top  - fr.top  + er.height / 2;
+  const count = 7;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'arena-particle';
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+    const dist  = 28 + Math.random() * 24;
+    p.style.left = `${cx}px`;
+    p.style.top  = `${cy}px`;
+    p.style.background = PARTICLE_COLORS[i % PARTICLE_COLORS.length] ?? color;
+    p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+    p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+    p.style.animationDuration = `${0.4 + Math.random() * 0.2}s`;
+    field.appendChild(p);
+    setTimeout(() => p.remove(), 650);
+  }
+}
+
+function spawnScoreFloat(el: HTMLDivElement, field: HTMLDivElement, pts: number) {
+  const er = el.getBoundingClientRect();
+  const fr = field.getBoundingClientRect();
+  const f = document.createElement('div');
+  f.className = 'arena-score-float';
+  f.textContent = `+${pts}`;
+  f.style.left = `${er.left - fr.left + er.width / 2}px`;
+  f.style.top  = `${er.top  - fr.top}px`;
+  field.appendChild(f);
+  setTimeout(() => f.remove(), 800);
+}
+
+function flashDamage(field: HTMLDivElement) {
+  const f = document.createElement('div');
+  f.className = 'arena-damage-flash';
+  field.appendChild(f);
+  setTimeout(() => f.remove(), 500);
+}
 
 // ── Solo game signals (persist across re-renders, reset on new game) ──
 type SoloState = 'idle' | 'countdown' | 'playing' | 'dead' | 'survived';
@@ -89,6 +133,11 @@ function InfoChip({ icon, label, sub }: { icon: string; label: string; sub: stri
 
 function CountdownScreen() {
   const count = soloCountdown.value;
+
+  useEffect(() => {
+    if (count > 0) sfxCountdown(count);
+    else sfxGo();
+  }, [count]);
 
   useEffect(() => {
     let t: ReturnType<typeof setInterval>;
@@ -253,6 +302,7 @@ function GameScreen() {
             soloCombo.value = 0;
             comboRef.current = 0;
             soloHudCombo.value = 0;
+            if (fieldRef.current) flashDamage(fieldRef.current);
             if (hpRef.current === 0) {
               soloWordsTyped.value = wordsTypedRef.current;
               soloScore.value = scoreRef.current;
@@ -336,18 +386,25 @@ function GameScreen() {
       if (typed === target.text) {
         // Destroy word
         localDestroyedRef.current.add(target.id);
-        const el = wordElsRef.current.get(target.id);
-        if (el) {
-          el.classList.add('arena-word--destroy');
-          const ref = el;
-          setTimeout(() => { ref.style.display = 'none'; }, 350);
-        }
         comboRef.current++;
-        scoreRef.current += wordScore(target, comboRef.current);
+        const pts = wordScore(target, comboRef.current);
+        scoreRef.current += pts;
         wordsTypedRef.current++;
         soloHudCombo.value = comboRef.current;
         soloHudScore.value = scoreRef.current;
         soloCombo.value    = comboRef.current;
+
+        const el = wordElsRef.current.get(target.id);
+        if (el && fieldRef.current) {
+          spawnParticles(el, fieldRef.current, 'var(--c-accent)');
+          spawnScoreFloat(el, fieldRef.current, pts);
+          el.classList.add('arena-word--destroy');
+          const ref = el;
+          setTimeout(() => { ref.style.display = 'none'; }, 350);
+        }
+        sfxPop(comboRef.current);
+        if (comboRef.current >= 3) sfxCombo(comboRef.current);
+
         targetIdRef.current = null;
         input.value = '';
         return;
@@ -383,7 +440,7 @@ function GameScreen() {
   const combo = soloHudCombo.value;
   const score = soloHudScore.value;
 
-  // Shake HP row on HP loss
+  // Shake HP row + SFX on HP loss
   useEffect(() => {
     if (hp < prevHpRef.current) {
       const row = hpRowRef.current;
@@ -393,6 +450,7 @@ function GameScreen() {
         row.classList.add('arena-hp-row--shake');
         setTimeout(() => row.classList.remove('arena-hp-row--shake'), 450);
       }
+      sfxMiss();
     }
     prevHpRef.current = hp;
   }, [hp]);
@@ -402,17 +460,24 @@ function GameScreen() {
 
       <div class="arena-hud-top">
         <div class="arena-hud-item">
-          <span class="arena-hud-label">Wave</span>
-          <span class="arena-hud-value">{wave}/9</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <span class="arena-hud-label">Wave</span>
+              <span class="arena-hud-value">{wave}<span style={{ color: 'var(--c-muted)', fontSize: 12, fontWeight: 500 }}>/9</span></span>
+            </div>
+            <div class="arena-wave-bar-track" style={{ width: 80 }}>
+              <div class="arena-wave-bar-fill" style={{ width: `${((Date.now() - (soloStartedAt.value ?? Date.now())) % WAVE_MS) / WAVE_MS * 100}%` }} />
+            </div>
+          </div>
         </div>
-        <div class="arena-hud-item">
-          <span class="arena-hud-value" style={{ color: 'var(--c-accent)', fontSize: '20px', fontWeight: 800 }}>
+        <div class="arena-hud-item" style={{ marginLeft: 'auto' }}>
+          <span class="arena-hud-value" style={{ color: 'var(--c-accent)', fontSize: '22px' }}>
             {score.toLocaleString()}
           </span>
           <span class="arena-hud-label">pts</span>
         </div>
         {combo >= 3 && (
-          <div key={combo} class="arena-hud-combo">×{combo} combo</div>
+          <div key={combo} class="arena-hud-combo">×{combo} COMBO</div>
         )}
       </div>
 

@@ -7,13 +7,55 @@ import {
 } from '@/store/arena';
 import { wordProgress, wordScore } from '@/lib/game-engine';
 import { sendMsg } from '@/lib/partykit-client';
+import { sfxPop, sfxMiss, sfxCombo } from '@/lib/sfx';
 
 const WAVE_MS = 25_000;
+const PARTICLE_COLORS = ['#f7df4b', '#22c55e', '#3b82f6', '#a855f7', '#f97316', '#ec4899'];
 
-// Module-level HUD signals (reset on component unmount)
 const hudCombo = signal(0);
 const hudScore = signal(0);
 const hudWave  = signal(1);
+
+function spawnParticles(el: HTMLDivElement, field: HTMLDivElement, color: string) {
+  const er = el.getBoundingClientRect();
+  const fr = field.getBoundingClientRect();
+  const cx = er.left - fr.left + er.width / 2;
+  const cy = er.top  - fr.top  + er.height / 2;
+  const count = 7;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'arena-particle';
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+    const dist  = 28 + Math.random() * 24;
+    p.style.left = `${cx}px`;
+    p.style.top  = `${cy}px`;
+    p.style.background = PARTICLE_COLORS[i % PARTICLE_COLORS.length] ?? color;
+    p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+    p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+    p.style.animationDuration = `${0.4 + Math.random() * 0.2}s`;
+    field.appendChild(p);
+    setTimeout(() => p.remove(), 650);
+  }
+}
+
+function spawnScoreFloat(el: HTMLDivElement, field: HTMLDivElement, pts: number) {
+  const er = el.getBoundingClientRect();
+  const fr = field.getBoundingClientRect();
+  const f = document.createElement('div');
+  f.className = 'arena-score-float';
+  f.textContent = `+${pts}`;
+  f.style.left = `${er.left - fr.left + er.width / 2}px`;
+  f.style.top  = `${er.top  - fr.top}px`;
+  field.appendChild(f);
+  setTimeout(() => f.remove(), 800);
+}
+
+function flashDamage(field: HTMLDivElement) {
+  const f = document.createElement('div');
+  f.className = 'arena-damage-flash';
+  field.appendChild(f);
+  setTimeout(() => f.remove(), 500);
+}
 
 export function SurvivalGame() {
   const fieldRef  = useRef<HTMLDivElement>(null);
@@ -33,7 +75,6 @@ export function SurvivalGame() {
     const field = fieldRef.current!;
     const words = arenaWordQueue.value;
 
-    // Build one DOM node per word
     const els = new Map<string, HTMLDivElement>();
     for (const word of words) {
       const el = document.createElement('div');
@@ -45,7 +86,6 @@ export function SurvivalGame() {
       els.set(word.id, el);
     }
     wordElsRef.current = els;
-
     inputRef.current?.focus();
 
     function onVisibility() {
@@ -68,17 +108,14 @@ export function SurvivalGame() {
       const targetId  = targetIdRef.current;
       const typedPfx  = inputRef.current?.value ?? '';
 
-      // Wave label update
       const wave = Math.min(Math.floor(elapsed / WAVE_MS) + 1, 9);
       if (wave !== prevWave) { prevWave = wave; hudWave.value = wave; }
 
-      // Release target if another player beat us to the claim
       if (targetId && claimed.has(targetId) && claimed.get(targetId) !== myId) {
         targetIdRef.current = null;
         if (inputRef.current) inputRef.current.value = '';
       }
 
-      // Build player color map once per frame (O(n) not O(n*m))
       const playerColors = new Map<string, string>();
       for (const p of arenaPlayers.value) playerColors.set(p.id, p.color);
 
@@ -91,18 +128,14 @@ export function SurvivalGame() {
             localDestroyedRef.current.add(word.id);
             el.classList.add('arena-word--destroy');
             const ref = el;
-            setTimeout(() => { ref.style.display = 'none'; }, 350);
+            setTimeout(() => { ref.style.display = 'none'; }, 360);
           }
           continue;
         }
 
-        if (missed.has(word.id)) {
-          el.style.display = 'none';
-          continue;
-        }
+        if (missed.has(word.id)) { el.style.display = 'none'; continue; }
 
         const p = wordProgress(word, elapsed);
-
         if (p < 0) { el.style.display = 'none'; continue; }
 
         if (p >= 1) {
@@ -118,11 +151,9 @@ export function SurvivalGame() {
           continue;
         }
 
-        // Visible — update position
         el.style.display = 'block';
         el.style.transform = `translateY(${p * fieldH}px)`;
 
-        // Urgency class
         if (p > 0.85) {
           el.classList.remove('arena-word--urgent-1');
           el.classList.add('arena-word--urgent-2');
@@ -133,7 +164,6 @@ export function SurvivalGame() {
           el.classList.remove('arena-word--urgent-1', 'arena-word--urgent-2');
         }
 
-        // Claimed state + content
         const claimedBy = claimed.get(word.id);
         if (word.id === targetIdRef.current) {
           el.classList.add('arena-word--mine');
@@ -178,10 +208,7 @@ export function SurvivalGame() {
     const input = e.target as HTMLInputElement;
     const typed = input.value;
 
-    if (!typed) {
-      targetIdRef.current = null;
-      return;
-    }
+    if (!typed) { targetIdRef.current = null; return; }
 
     const elapsed   = Date.now() - (arenaGameStartedAt.value ?? 0);
     const claimed   = arenaClaimedWords.value;
@@ -189,20 +216,30 @@ export function SurvivalGame() {
     const missed    = arenaMissedWords.value;
     const myId      = arenaPlayerId.value;
     const words     = arenaWordQueue.value;
+    const field     = fieldRef.current!;
 
     if (targetIdRef.current) {
       const target = words.find(w => w.id === targetIdRef.current);
       if (!target || destroyed.has(target.id) || missed.has(target.id)) {
-        targetIdRef.current = null;
-        input.value = '';
-        return;
+        targetIdRef.current = null; input.value = ''; return;
       }
 
       if (typed === target.text) {
         comboRef.current++;
-        scoreRef.current += wordScore(target, comboRef.current);
+        const pts = wordScore(target, comboRef.current);
+        scoreRef.current += pts;
         hudCombo.value = comboRef.current;
         hudScore.value = scoreRef.current;
+
+        // VFX + SFX
+        const el = wordElsRef.current.get(target.id);
+        if (el) {
+          spawnParticles(el, field, 'var(--c-accent)');
+          spawnScoreFloat(el, field, pts);
+        }
+        sfxPop(comboRef.current);
+        if (comboRef.current >= 3 && comboRef.current % 1 === 0) sfxCombo(comboRef.current);
+
         sendMsg({ type: 'word_done', wordId: target.id, combo: comboRef.current });
         targetIdRef.current = null;
         input.value = '';
@@ -210,7 +247,6 @@ export function SurvivalGame() {
       }
 
       if (!target.text.startsWith(typed)) {
-        // Block wrong key — revert to longest correct prefix
         let correct = '';
         for (let i = 0; i < typed.length; i++) {
           if (i >= target.text.length || typed[i] !== target.text[i]) break;
@@ -219,10 +255,9 @@ export function SurvivalGame() {
         input.value = correct;
         return;
       }
-      return; // still typing correctly
+      return;
     }
 
-    // No target — scan for first matching visible unclaimed word
     for (const word of words) {
       if (destroyed.has(word.id) || missed.has(word.id)) continue;
       const p = wordProgress(word, elapsed);
@@ -237,7 +272,6 @@ export function SurvivalGame() {
     }
   }
 
-  // Reactive HUD (re-renders infrequently — only on score/HP/death events)
   const myPlayer   = arenaMyPlayer.value;
   const allPlayers = arenaPlayers.value;
   const myId       = arenaPlayerId.value;
@@ -247,7 +281,6 @@ export function SurvivalGame() {
   const alive      = myPlayer?.alive ?? true;
   const myHp       = myPlayer?.hp ?? 5;
 
-  // Shake HP row on HP loss
   useEffect(() => {
     if (myHp < prevHpRef.current) {
       const row = hpRowRef.current;
@@ -255,40 +288,53 @@ export function SurvivalGame() {
         row.classList.remove('arena-hp-row--shake');
         void row.offsetWidth;
         row.classList.add('arena-hp-row--shake');
-        setTimeout(() => row.classList.remove('arena-hp-row--shake'), 450);
+        setTimeout(() => row.classList.remove('arena-hp-row--shake'), 420);
       }
+      if (fieldRef.current) flashDamage(fieldRef.current);
+      sfxMiss();
     }
     prevHpRef.current = myHp;
   }, [myHp]);
 
+  const waveProgress = ((Date.now() - (arenaGameStartedAt.value ?? Date.now())) % WAVE_MS) / WAVE_MS;
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--c-bg)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-      {/* Top HUD strip */}
+      {/* HUD */}
       <div class="arena-hud-top">
         <div class="arena-hud-item">
-          <span class="arena-hud-label">Wave</span>
-          <span class="arena-hud-value">{wave}/9</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <span class="arena-hud-label">Wave</span>
+              <span class="arena-hud-value">{wave}<span style={{ color: 'var(--c-muted)', fontSize: 12, fontWeight: 500 }}>/9</span></span>
+            </div>
+            <div class="arena-wave-bar-track" style={{ width: 80 }}>
+              <div class="arena-wave-bar-fill" style={{ width: `${waveProgress * 100}%` }} />
+            </div>
+          </div>
         </div>
-        <div class="arena-hud-item">
-          <span class="arena-hud-value" style={{ color: 'var(--c-accent)', fontSize: '20px', fontWeight: 800 }}>
+
+        <div class="arena-hud-item" style={{ marginLeft: 'auto' }}>
+          <span class="arena-hud-value" style={{ color: 'var(--c-accent)', fontSize: '22px' }}>
             {score.toLocaleString()}
           </span>
           <span class="arena-hud-label">pts</span>
         </div>
+
         {combo >= 3 && (
-          <div key={combo} class="arena-hud-combo">×{combo} combo</div>
+          <div key={combo} class="arena-hud-combo">×{combo} COMBO</div>
         )}
       </div>
 
-      {/* Play field — words injected by RAF */}
+      {/* Field */}
       <div
         ref={fieldRef}
         style={{ flex: 1, position: 'relative', overflow: 'hidden', cursor: 'text' }}
         onClick={() => inputRef.current?.focus()}
       />
 
-      {/* Bottom bar: HP + input + opponents */}
+      {/* Bottom bar */}
       <div class="arena-bottom-bar">
         <div ref={hpRowRef} class="arena-hp-row">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -300,7 +346,7 @@ export function SurvivalGame() {
           ref={inputRef}
           type="text"
           class="arena-word-input"
-          placeholder={alive ? 'Type words to destroy them…' : ''}
+          placeholder={alive ? 'Type words…' : ''}
           disabled={!alive}
           onInput={handleInput}
           autoComplete="off"
@@ -329,11 +375,11 @@ export function SurvivalGame() {
       {/* Death overlay */}
       {!alive && (
         <div class="arena-dead-overlay">
-          <div style={{ fontSize: '64px', lineHeight: 1 }}>💀</div>
+          <div class="arena-dead-skull" style={{ fontSize: '72px', lineHeight: 1 }}>💀</div>
           <div class="arena-dead-title">You Died</div>
           <div class="arena-dead-sub">Watching the survivors…</div>
-          <div style={{ marginTop: '12px', fontSize: '22px', fontWeight: 800, color: 'var(--c-accent)' }}>
-            {score.toLocaleString()} pts
+          <div style={{ marginTop: '8px', fontSize: '26px', fontWeight: 800, color: 'var(--c-accent)', fontFamily: 'var(--font-arena)' }}>
+            {score.toLocaleString()} <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--c-muted)' }}>pts</span>
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { arenaCountdownT, tickCountdown } from '@/store/arena';
+import { sfxCountdown, sfxGo } from '@/lib/sfx';
 
 const BG_COLORS = ['', '#dc2626', '#d97706', '#16a34a'];  // index = countdown number
 const RING_CIRCUMFERENCE = 440; // 2π × 70 ≈ 440
@@ -8,6 +9,11 @@ export function CountdownView() {
   const rafRef = useRef<number>(0);
   const count  = arenaCountdownT.value;
   const isGo   = count === 0;
+
+  useEffect(() => {
+    if (isGo) sfxGo();
+    else sfxCountdown(count);
+  }, [count]);
 
   useEffect(() => {
     function tick() {

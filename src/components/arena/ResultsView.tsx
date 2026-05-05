@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import confetti from 'canvas-confetti';
 import {
   arenaFinalPlayers, arenaSurvivorId, arenaPlayerId,
   arenaRoomId, arenaPlayerName, arenaIsHost, arenaPlayerColor,
@@ -6,33 +7,11 @@ import {
 } from '@/store/arena';
 import { connectToRoom, sendMsg } from '@/lib/partykit-client';
 import type { SurvivalPlayer } from '@/lib/arena-types';
+import { sfxWin, sfxDead } from '@/lib/sfx';
 
 const MEDAL = ['👑', '🥈', '🥉'];
 const PODIUM_HEIGHTS = ['130px', '100px', '75px'];
 const PODIUM_COLORS  = ['#f7df4b', '#9ca3af', '#cd7f32'];
-
-function Confetti() {
-  const colors = ['#f7df4b', '#22c55e', '#3b82f6', '#ec4899', '#a855f7', '#f97316', '#ef4444'];
-  return (
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-      {Array.from({ length: 30 }).map((_, i) => (
-        <div
-          key={i}
-          class="arena-confetti-piece"
-          style={{
-            left: `${3 + i * 3.2}%`,
-            animationDelay: `${(i * 0.05).toFixed(2)}s`,
-            animationDuration: `${1.0 + (i % 6) * 0.25}s`,
-            background: colors[i % colors.length],
-            borderRadius: i % 3 === 0 ? '50%' : '2px',
-            width: i % 4 === 0 ? '12px' : '9px',
-            height: i % 4 === 0 ? '12px' : '9px',
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 function useCountUp(target: number, duration = 1400) {
   const [value, setValue] = useState(0);
@@ -82,6 +61,22 @@ export function ResultsView() {
   const rest   = ranked.slice(3);
 
   const myScore = useCountUp(me?.score ?? 0);
+  const isSurvivor = me?.id === survivorId;
+
+  useEffect(() => {
+    if (isSurvivor) {
+      sfxWin();
+      const end = Date.now() + 2500;
+      const frame = () => {
+        confetti({ particleCount: 3, angle: 60,  spread: 55, origin: { x: 0 },   colors: ['#f7df4b', '#22c55e', '#3b82f6'] });
+        confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 },   colors: ['#ec4899', '#a855f7', '#f97316'] });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    } else {
+      sfxDead();
+    }
+  }, []);
 
   // Podium: 2nd, 1st, 3rd (center = winner)
   const podiumOrder   = [top3[1], top3[0], top3[2]].filter((p): p is typeof top3[0] => Boolean(p));
@@ -96,7 +91,6 @@ export function ResultsView() {
 
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: '24px', position: 'relative' }}>
-      <Confetti />
 
       {/* Title */}
       <div style={{ textAlign: 'center', marginBottom: '24px', position: 'relative' }}>
