@@ -3,7 +3,7 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "env": {
-    "VITE_PARTYKIT_HOST": "m4rkdown-arena.partykit.dev",
+    "VITE_PARTYKIT_HOST": "m4rkdown-arena.zhenxiao-yu.partykit.dev",
     "VITE_SITE_URL": "https://m4rkdown.is-a.dev"
   },
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
@@ -13,7 +13,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://va.vercel-scripts.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://m4rkdown-arena.partykit.dev wss://m4rkdown-arena.partykit.dev https://fonts.googleapis.com https://fonts.gstatic.com https://vitals.vercel-insights.com; frame-ancestors 'none'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https://va.vercel-scripts.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://m4rkdown-arena.zhenxiao-yu.partykit.dev wss://m4rkdown-arena.zhenxiao-yu.partykit.dev https://fonts.googleapis.com https://fonts.gstatic.com https://vitals.vercel-insights.com; frame-ancestors 'none'"
         },
         {
           "key": "X-Content-Type-Options",
