@@ -17,8 +17,7 @@ import { TemplateModal } from './TemplateModal';
 import { activeDoc } from '@/store/documents';
 import { showOutline, zenMode, toggleZenMode } from '@/store/settings';
 import { splitRatio, layoutMode, setLayoutMode, type LayoutMode } from '@/store/layout';
-import { openPalette } from '@/store/commandPalette';
-import { templateModalOpen, closeTemplateModal } from '@/store/commandPalette';
+import { openPalette, templateModalOpen, closeTemplateModal } from '@/store/commandPalette';
 import { enterBattleMode, returnToMenu } from '@/store/appMode';
 
 // ── Service worker update detection ──────────────────────────────────
@@ -217,15 +216,6 @@ export function AppLayout() {
             <ToastStack />
             {templateModalOpen.value && <TemplateModal onClose={closeTemplateModal} />}
 
-            <style>{`
-                @media (max-width: 480px) { .github-link { display: none; } }
-                @media (max-width: 767px) {
-                    .split-pane { flex-direction: column !important; }
-                    .split-pane > div { flex: none !important; height: calc(50vh - 56px) !important; overflow: hidden !important; }
-                    .outline-panel { display: none !important; }
-                    .resize-handle { display: none !important; }
-                }
-            `}</style>
         </div>
     );
 }

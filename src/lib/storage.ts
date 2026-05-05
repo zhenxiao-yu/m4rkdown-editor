@@ -31,7 +31,7 @@ export function loadStorage(): StorageSchema | null {
 export function saveStorage(schema: StorageSchema): void {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(schema));
-    } catch (e) {
-        console.warn('M4rkdown: localStorage quota exceeded', e);
+    } catch {
+        // localStorage quota exceeded — silently drop the save
     }
 }

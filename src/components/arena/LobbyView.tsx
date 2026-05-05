@@ -3,6 +3,7 @@ import {
   arenaRoomId, arenaPlayers, arenaHostId, arenaPlayerId, arenaIsHost,
 } from '@/store/arena';
 import { sendMsg } from '@/lib/partykit-client';
+import { showToast } from '@/store/toast';
 
 function initials(name: string) {
   return name.slice(0, 2).toUpperCase();
@@ -18,7 +19,9 @@ export function LobbyView() {
   const [madePublic, setMadePublic] = useState(false);
 
   function copyCode() {
-    navigator.clipboard.writeText(roomId).catch(() => {});
+    navigator.clipboard.writeText(roomId)
+      .then(() => showToast('Room code copied!', 'success'))
+      .catch(() => showToast('Copy failed — select code manually', 'error'));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }

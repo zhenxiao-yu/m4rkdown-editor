@@ -592,66 +592,6 @@ body {
   animation: arena-blink 1s step-end infinite;
 }
 
-/* Progress bars */
-.arena-progress-bar {
-  height: 5px;
-  border-radius: 3px;
-  background: var(--c-border);
-  overflow: hidden;
-}
-.arena-progress-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.25s ease;
-}
-
-/* Difficulty badges */
-.arena-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #fff;
-}
-
-/* Form inputs in arena */
-.arena-input {
-  width: 100%;
-  padding: 9px 12px;
-  background: var(--c-surface-alt);
-  border: 1px solid var(--c-border);
-  border-radius: 8px;
-  color: var(--c-text);
-  font-size: 14px;
-  font-family: inherit;
-  outline: none;
-  transition: border-color 0.15s;
-}
-.arena-input:focus {
-  border-color: var(--c-accent);
-  box-shadow: 0 0 0 2px var(--c-accent)22;
-}
-.arena-input::placeholder { color: var(--c-muted); }
-
-/* Primary button */
-.arena-btn-primary {
-  padding: 10px 20px;
-  background: var(--c-accent);
-  color: var(--c-accent-fg);
-  font-weight: 700;
-  font-size: 14px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
-  font-family: inherit;
-}
-.arena-btn-primary:hover:not(:disabled) { opacity: 0.88; transform: translateY(-1px); }
-.arena-btn-primary:active:not(:disabled) { transform: translateY(0); }
-.arena-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ─── Main menu ─────────────────────────────────────────────────── */
 .menu-bg {
@@ -1195,6 +1135,7 @@ body {
   border-color: var(--c-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-accent) 18%, transparent);
 }
+.arena-input::placeholder { color: var(--c-muted); }
 
 .arena-badge {
   display: inline-flex;
@@ -1236,6 +1177,17 @@ body {
     grid-template-columns: 36px 1fr 60px 70px !important;
   }
   .leaderboard-hp-col { display: none; }
+}
+
+/* ─── App layout responsive ─────────────────────────────────────── */
+
+@media (max-width: 480px) { .github-link { display: none; } }
+
+@media (max-width: 767px) {
+  .split-pane { flex-direction: column !important; }
+  .split-pane > div { flex: none !important; height: calc(50vh - 56px) !important; overflow: hidden !important; }
+  .outline-panel { display: none !important; }
+  .resize-handle { display: none !important; }
 }
 
 @media (max-width: 640px) {

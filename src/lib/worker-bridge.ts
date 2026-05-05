@@ -14,8 +14,8 @@ function getWorker(): Worker {
                 pending.delete(e.data.id);
             }
         };
-        worker.onerror = (err) => {
-            console.error('Parser worker error:', err);
+        worker.onerror = () => {
+            // worker crash — in-flight requests will resolve to empty string
         };
     }
     return worker;
