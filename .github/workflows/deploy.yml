@@ -11,26 +11,28 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
 env:
+  NODE_VERSION: '24'
   VERCEL_ORG_ID: team_N854M53gDdl6HNscNxNMTcmS
   VERCEL_PROJECT_ID: prj_MfXHjEwE3OilT3d6vpqc53HZaxxh
 
 jobs:
-  # ── Shared build ──────────────────────────────────────────────────────
-  # Single build that all deploy jobs reuse.
-  # Uses `vercel build` so env vars come from Vercel project settings
-  # and the prebuilt output is uploaded as an artifact.
+  # ── Build ─────────────────────────────────────────────────────────────
+  # Single build shared by all deploy jobs.
+  # vercel build pulls env vars from Vercel project settings so the
+  # same artifact is deployed everywhere with no rebuild.
   build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - run: npm ci
@@ -44,62 +46,55 @@ jobs:
       - name: Pull Vercel environment
         run: npx vercel pull --yes --environment=production --token ${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build (Vercel — prebuilt output)
+      - name: Build
         run: npx vercel build --prod --token ${{ secrets.VERCEL_TOKEN }}
 
-      - name: Upload Vercel prebuilt output
+      - name: Upload Vercel artifact
         uses: actions/upload-artifact@v4
         with:
           name: vercel-output
           path: .vercel/output
           retention-days: 1
 
-      - name: Upload Pages artifact (from Vercel static output)
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: .vercel/output/static
 
-  # ── GitHub Pages ─────────────────────────────────────────────────────
-  deploy-pages:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  # ── Vercel ───────────────────────────────────────────────────────────
-  # Downloads the prebuilt artifact — no rebuild on Vercel's cloud.
+  # ── Deploy: Vercel ────────────────────────────────────────────────────
   deploy-vercel:
+    name: Deploy → Vercel
     needs: build
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://m4rkdown-editor.vercel.app
+      url: https://m4rkdown.is-a.dev
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-
-      - run: npm ci
-
-      - name: Download prebuilt output
+      - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: vercel-output
           path: .vercel/output
 
-      - name: Deploy to Vercel (prebuilt — no cloud rebuild)
-        run: npx vercel deploy --prebuilt --prod --token ${{ secrets.VERCEL_TOKEN }}
+      - name: Deploy (prebuilt — no cloud rebuild)
+        run: npx --yes vercel deploy --prebuilt --prod --token ${{ secrets.VERCEL_TOKEN }}
 
-  # ── PartyKit ─────────────────────────────────────────────────────────
+  # ── Deploy: GitHub Pages ──────────────────────────────────────────────
+  deploy-pages:
+    name: Deploy → GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+  # ── Deploy: PartyKit ──────────────────────────────────────────────────
   deploy-partykit:
+    name: Deploy → PartyKit
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -107,7 +102,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - run: npm ci
