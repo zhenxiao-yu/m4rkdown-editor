@@ -6,6 +6,7 @@ import DOMPurify from 'dompurify';
 import { useRef, useEffect, useState } from 'preact/hooks';
 import { effect } from '@preact/signals';
 import { parsedHtml, activeTab, markdownSource } from '@/store/editor';
+import { editorScrollFraction, layoutMode } from '@/store/layout';
 import { TabBar } from './TabBar';
 import { SyntaxTreeTab } from './SyntaxTreeTab';
 import { SourceCodeTab } from './SourceCodeTab';
@@ -142,6 +143,22 @@ function RenderedPreview() {
 // ── Preview pane ──────────────────────────────────────────────────────
 
 export function PreviewPane() {
+    const previewScrollRef = useRef<HTMLDivElement>(null);
+    const syncing = useRef(false);
+
+    useEffect(() => {
+        const stop = effect(() => {
+            const frac = editorScrollFraction.value;
+            if (layoutMode.value !== 'split') return;
+            const el = previewScrollRef.current;
+            if (!el || syncing.current) return;
+            syncing.current = true;
+            el.scrollTop = frac * (el.scrollHeight - el.clientHeight);
+            requestAnimationFrame(() => { syncing.current = false; });
+        });
+        return stop;
+    }, []);
+
     return (
         <div style={{
             display: 'flex',
@@ -152,7 +169,11 @@ export function PreviewPane() {
             borderLeft: '1px solid var(--c-border)',
         }}>
             <TabBar />
-            <div key={activeTab.value} style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+            <div
+                ref={activeTab.value === 'preview' ? previewScrollRef : undefined}
+                key={activeTab.value}
+                style={{ flex: 1, overflow: 'auto', minHeight: 0 }}
+            >
                 {activeTab.value === 'preview' && <RenderedPreview />}
                 {activeTab.value === 'tree'    && <SyntaxTreeTab />}
                 {activeTab.value === 'source'  && <SourceCodeTab />}

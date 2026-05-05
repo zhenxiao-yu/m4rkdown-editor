@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, LayoutTemplate } from 'lucide-react';
 import autoAnimate from '@formkit/auto-animate';
 import { docList, activeDocId, setActiveDoc, createDoc, deleteDoc, updateDocTitle } from '@/store/documents';
 import { showToast } from '@/store/toast';
+import { openTemplateModal } from '@/store/commandPalette';
 
 export function DocumentTabs() {
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -116,6 +117,15 @@ export function DocumentTabs() {
                 style={{ marginLeft: '4px', padding: '3px 6px', flexShrink: 0, color: 'var(--c-muted)', borderColor: 'var(--c-border)' }}
             >
                 <Plus size={13} strokeWidth={2.5} />
+            </button>
+            <button
+                class="btn-icon"
+                data-tooltip="New from Template"
+                aria-label="New from Template"
+                onClick={openTemplateModal}
+                style={{ marginLeft: '2px', padding: '3px 6px', flexShrink: 0, color: 'var(--c-muted)', borderColor: 'var(--c-border)' }}
+            >
+                <LayoutTemplate size={13} strokeWidth={2} />
             </button>
         </div>
     );

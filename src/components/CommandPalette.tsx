@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Search } from 'lucide-react';
 import Fuse from 'fuse.js';
-import { paletteOpen, closePalette } from '@/store/commandPalette';
-import { toggleFocusMode, toggleTypewriterMode, toggleOutline } from '@/store/settings';
+import { paletteOpen, closePalette, openTemplateModal } from '@/store/commandPalette';
+import { toggleFocusMode, toggleTypewriterMode, toggleOutline, toggleZenMode, toggleVimMode } from '@/store/settings';
 import { toggleTheme } from '@/store/theme';
 import { createDoc } from '@/store/documents';
 import { markdownSource, parsedHtml } from '@/store/editor';
@@ -124,6 +124,28 @@ function getActions(): PaletteAction[] {
                     document.dispatchEvent(event);
                 }, 50);
             },
+        },
+        {
+            id: 'zen',
+            label: 'Toggle Zen Mode',
+            category: 'View',
+            keywords: ['zen', 'fullscreen', 'distraction', 'focus', 'immersive'],
+            shortcut: 'Ctrl+Shift+F',
+            run: () => { toggleZenMode(); closePalette(); },
+        },
+        {
+            id: 'toggle-vim',
+            label: 'Toggle Vim Mode',
+            category: 'Editor',
+            keywords: ['vim', 'vi', 'keybindings', 'modal'],
+            run: () => { toggleVimMode(); closePalette(); },
+        },
+        {
+            id: 'new-template',
+            label: 'New from Template…',
+            category: 'File',
+            keywords: ['template', 'new', 'create', 'blog', 'readme', 'journal', 'meeting'],
+            run: () => { openTemplateModal(); closePalette(); },
         },
     ];
 }

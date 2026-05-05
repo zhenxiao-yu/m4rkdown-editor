@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
-import { Command, Swords, Home } from 'lucide-react';
+import { effect } from '@preact/signals';
+import { Command, Swords, Home, PanelLeft, Columns2, PanelRight, Maximize2, Minimize2 } from 'lucide-react';
 import { EditorPane } from './EditorPane';
 import { PreviewPane } from './PreviewPane';
 import { DocumentTabs } from './DocumentTabs';
@@ -12,10 +13,12 @@ import { OutlineSidebar } from './OutlineSidebar';
 import { ResizeHandle } from './ResizeHandle';
 import { CommandPalette } from './CommandPalette';
 import { ToastStack } from './Toast';
+import { TemplateModal } from './TemplateModal';
 import { activeDoc } from '@/store/documents';
-import { showOutline } from '@/store/settings';
-import { splitRatio } from '@/store/layout';
+import { showOutline, zenMode, toggleZenMode } from '@/store/settings';
+import { splitRatio, layoutMode, setLayoutMode, type LayoutMode } from '@/store/layout';
 import { openPalette } from '@/store/commandPalette';
+import { templateModalOpen, closeTemplateModal } from '@/store/commandPalette';
 import { enterBattleMode, returnToMenu } from '@/store/appMode';
 
 // ── Service worker update detection ──────────────────────────────────
@@ -41,6 +44,8 @@ export function AppLayout() {
     const docTitle = activeDoc.value?.title ?? '';
     const [showUpdate, setShowUpdate] = useState(false);
     const ratio = splitRatio.value;
+    const mode = layoutMode.value;
+    const isZen = zenMode.value;
 
     if (!_swUpdateCallback) _swUpdateCallback = () => setShowUpdate(true);
 
@@ -49,92 +54,145 @@ export function AppLayout() {
         window.location.reload();
     }
 
-    // Global Ctrl+Shift+P → command palette
+    // Global keyboard shortcuts + zen fullscreen sync
     useEffect(() => {
         function onKeyDown(e: KeyboardEvent) {
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
+                e.preventDefault(); openPalette();
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === '\\') {
                 e.preventDefault();
-                openPalette();
+                const modes: LayoutMode[] = ['editor', 'split', 'preview'];
+                setLayoutMode(modes[(modes.indexOf(layoutMode.value) + 1) % 3]);
+            }
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+                e.preventDefault(); toggleZenMode();
             }
         }
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
     }, []);
 
+    // Fullscreen sync with zen mode
+    useEffect(() => {
+        const stop = effect(() => {
+            if (zenMode.value) {
+                document.documentElement.requestFullscreen?.().catch(() => {});
+            } else if (document.fullscreenElement) {
+                document.exitFullscreen?.().catch(() => {});
+            }
+        });
+        const onFsChange = () => { if (!document.fullscreenElement) zenMode.value = false; };
+        document.addEventListener('fullscreenchange', onFsChange);
+        return () => { stop(); document.removeEventListener('fullscreenchange', onFsChange); };
+    }, []);
+
+    const editorPaneStyle = mode === 'editor'
+        ? { width: '100%', overflow: 'hidden', minWidth: 0, flexShrink: 0 as const }
+        : mode === 'preview'
+        ? { width: 0, overflow: 'hidden', minWidth: 0, flexShrink: 0 as const }
+        : { width: `${ratio * 100}%`, overflow: 'hidden', minWidth: 0, flexShrink: 0 as const };
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
             {showUpdate && <UpdateBanner onUpdate={handleSwUpdate} />}
 
             {/* ── Header ── */}
-            <header class="app-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
-                    <span style={{ color: 'var(--c-accent)', fontWeight: 700, fontSize: '18px', letterSpacing: '-0.5px', flexShrink: 0, fontFamily: 'var(--font-ui)' }}>
-                        M4rkdown
-                    </span>
-                    {docTitle && (
-                        <span style={{ color: 'var(--c-muted)', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-ui)' }}>
-                            — {docTitle}
+            {!isZen && (
+                <header class="app-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
+                        <span style={{ color: 'var(--c-accent)', fontWeight: 700, fontSize: '18px', letterSpacing: '-0.5px', flexShrink: 0, fontFamily: 'var(--font-ui)' }}>
+                            M4rkdown
                         </span>
-                    )}
-                </div>
+                        {docTitle && (
+                            <span style={{ color: 'var(--c-muted)', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-ui)' }}>
+                                — {docTitle}
+                            </span>
+                        )}
+                    </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                    <button
-                        class="btn-icon"
-                        data-tooltip="Command Palette"
-                        data-tooltip-shortcut="Ctrl+Shift+P"
-                        aria-label="Open command palette"
-                        onClick={openPalette}
-                    >
-                        <Command size={15} strokeWidth={1.75} />
-                    </button>
-                    <ShareButton />
-                    <button
-                        class="btn-icon"
-                        data-tooltip="Battle Mode"
-                        aria-label="Enter battle mode"
-                        onClick={enterBattleMode}
-                        style={{ color: '#ef4444', borderColor: 'var(--c-border)' }}
-                    >
-                        <Swords size={15} strokeWidth={1.75} />
-                    </button>
-                    <ExportMenu />
-                    <ThemeToggle />
-                    <button
-                        class="btn-icon"
-                        data-tooltip="Main Menu"
-                        aria-label="Return to main menu"
-                        onClick={returnToMenu}
-                    >
-                        <Home size={15} strokeWidth={1.75} />
-                    </button>
-                    <a
-                        href="https://github.com/zhenxiao-yu/m4rkdown-editor"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label="View on GitHub"
-                        class="btn-icon github-link"
-                        data-tooltip="View on GitHub"
-                        style={{ textDecoration: 'none', fontSize: '13px', fontFamily: 'var(--font-ui)', padding: '4px 8px' }}
-                    >
-                        GitHub
-                    </a>
-                </div>
-            </header>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        {/* Layout mode buttons */}
+                        {(['editor', 'split', 'preview'] as LayoutMode[]).map(m => (
+                            <button
+                                key={m}
+                                class={`btn-icon${mode === m ? ' btn-icon--active' : ''}`}
+                                data-tooltip={m === 'editor' ? 'Editor Only (Ctrl+\\)' : m === 'split' ? 'Split View' : 'Preview Only'}
+                                aria-label={m === 'editor' ? 'Editor only' : m === 'split' ? 'Split view' : 'Preview only'}
+                                onClick={() => setLayoutMode(m)}
+                            >
+                                {m === 'editor'  && <PanelLeft  size={15} strokeWidth={1.75} />}
+                                {m === 'split'   && <Columns2   size={15} strokeWidth={1.75} />}
+                                {m === 'preview' && <PanelRight size={15} strokeWidth={1.75} />}
+                            </button>
+                        ))}
+                        <button
+                            class="btn-icon"
+                            data-tooltip="Zen Mode (Ctrl+Shift+F)"
+                            aria-label="Toggle zen mode"
+                            onClick={toggleZenMode}
+                        >
+                            <Maximize2 size={15} strokeWidth={1.75} />
+                        </button>
+                        <button
+                            class="btn-icon"
+                            data-tooltip="Command Palette"
+                            data-tooltip-shortcut="Ctrl+Shift+P"
+                            aria-label="Open command palette"
+                            onClick={openPalette}
+                        >
+                            <Command size={15} strokeWidth={1.75} />
+                        </button>
+                        <ShareButton />
+                        <button
+                            class="btn-icon"
+                            data-tooltip="Battle Mode"
+                            aria-label="Enter battle mode"
+                            onClick={enterBattleMode}
+                            style={{ color: '#ef4444', borderColor: 'var(--c-border)' }}
+                        >
+                            <Swords size={15} strokeWidth={1.75} />
+                        </button>
+                        <ExportMenu />
+                        <ThemeToggle />
+                        <button
+                            class="btn-icon"
+                            data-tooltip="Main Menu"
+                            aria-label="Return to main menu"
+                            onClick={returnToMenu}
+                        >
+                            <Home size={15} strokeWidth={1.75} />
+                        </button>
+                        <a
+                            href="https://github.com/zhenxiao-yu/m4rkdown-editor"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="View on GitHub"
+                            class="btn-icon github-link"
+                            data-tooltip="View on GitHub"
+                            style={{ textDecoration: 'none', fontSize: '13px', fontFamily: 'var(--font-ui)', padding: '4px 8px' }}
+                        >
+                            GitHub
+                        </a>
+                    </div>
+                </header>
+            )}
 
             {/* ── Document tabs ── */}
-            <DocumentTabs />
+            {!isZen && <DocumentTabs />}
 
             {/* ── Split pane + optional outline sidebar ── */}
             <div class="split-pane" style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
-                <div style={{ width: `${ratio * 100}%`, overflow: 'hidden', minWidth: 0, flexShrink: 0 }}>
+                <div style={editorPaneStyle}>
                     <EditorPane />
                 </div>
-                <ResizeHandle />
-                <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
-                    <PreviewPane />
-                </div>
-                {showOutline.value && (
+                {mode === 'split' && <ResizeHandle />}
+                {mode !== 'editor' && (
+                    <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
+                        <PreviewPane />
+                    </div>
+                )}
+                {showOutline.value && mode !== 'preview' && (
                     <div class="outline-panel" style={{ overflow: 'hidden' }}>
                         <OutlineSidebar />
                     </div>
@@ -142,11 +200,22 @@ export function AppLayout() {
             </div>
 
             {/* ── Status bar ── */}
-            <StatusBar />
+            {!isZen && <StatusBar />}
+
+            {/* ── Zen hover strip ── */}
+            {isZen && (
+                <div class="zen-hover-strip">
+                    <button onClick={toggleZenMode} style={{ background: 'none', border: 'none', color: 'var(--c-muted)', fontSize: 12, cursor: 'pointer' }}>
+                        <Minimize2 size={13} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                        Exit Zen · Ctrl+Shift+F
+                    </button>
+                </div>
+            )}
 
             {/* ── Overlays ── */}
             <CommandPalette />
             <ToastStack />
+            {templateModalOpen.value && <TemplateModal onClose={closeTemplateModal} />}
 
             <style>{`
                 @media (max-width: 480px) { .github-link { display: none; } }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import {
   arenaWordQueue, arenaGameStartedAt, arenaClaimedWords,
@@ -7,7 +7,7 @@ import {
 } from '@/store/arena';
 import { wordProgress, wordScore } from '@/lib/game-engine';
 import { sendMsg } from '@/lib/partykit-client';
-import { sfxPop, sfxMiss, sfxCombo } from '@/lib/sfx';
+import { sfxPop, sfxMiss, sfxCombo, sfxIsMuted, sfxSetMuted } from '@/lib/sfx';
 
 const WAVE_MS = 25_000;
 const PARTICLE_COLORS = ['#f7df4b', '#22c55e', '#3b82f6', '#a855f7', '#f97316', '#ec4899'];
@@ -58,6 +58,9 @@ function flashDamage(field: HTMLDivElement) {
 }
 
 export function SurvivalGame() {
+  const [muted, setMuted] = useState(sfxIsMuted());
+  function toggleMute() { const n = !muted; sfxSetMuted(n); setMuted(n); }
+
   const fieldRef  = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
   const hpRowRef  = useRef<HTMLDivElement>(null);
@@ -258,17 +261,20 @@ export function SurvivalGame() {
       return;
     }
 
-    for (const word of words) {
-      if (destroyed.has(word.id) || missed.has(word.id)) continue;
-      const p = wordProgress(word, elapsed);
-      if (p < 0 || p >= 1) continue;
-      const claimedBy = claimed.get(word.id);
-      if (claimedBy && claimedBy !== myId) continue;
-      if (word.text.startsWith(typed)) {
-        targetIdRef.current = word.id;
-        sendMsg({ type: 'claim_word', wordId: word.id });
-        return;
-      }
+    const candidates = words.filter(w => {
+      if (destroyed.has(w.id) || missed.has(w.id)) return false;
+      const p = wordProgress(w, elapsed);
+      if (p < 0 || p >= 1) return false;
+      const claimedBy = claimed.get(w.id);
+      if (claimedBy && claimedBy !== myId) return false;
+      return w.text.startsWith(typed);
+    });
+    if (candidates.length > 0) {
+      const best = candidates.reduce((a, b) =>
+        wordProgress(b, elapsed) > wordProgress(a, elapsed) ? b : a
+      );
+      targetIdRef.current = best.id;
+      sendMsg({ type: 'claim_word', wordId: best.id });
     }
   }
 
@@ -325,6 +331,14 @@ export function SurvivalGame() {
         {combo >= 3 && (
           <div key={combo} class="arena-hud-combo">×{combo} COMBO</div>
         )}
+        <button
+          onClick={toggleMute}
+          style={{ marginLeft: '8px', background: 'none', border: '1px solid var(--c-border)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', color: 'var(--c-muted)', fontSize: 15, lineHeight: 1, flexShrink: 0 }}
+          title={muted ? 'Unmute' : 'Mute'}
+          aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+        >
+          {muted ? '🔇' : '🔊'}
+        </button>
       </div>
 
       {/* Field */}

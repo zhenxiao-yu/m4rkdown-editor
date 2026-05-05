@@ -1237,3 +1237,59 @@ body {
   }
   .leaderboard-hp-col { display: none; }
 }
+
+@media (max-width: 640px) {
+  .arena-bottom-bar { flex-wrap: wrap; gap: 8px; padding: 8px 10px; }
+  .arena-word-input { width: 100%; flex: none; order: 1; }
+  .arena-hp-row { order: 0; }
+  .arena-opponents { order: 2; max-width: 100%; flex-direction: row; flex-wrap: wrap; }
+  .arena-hud-top { gap: 10px; padding: 0 10px; height: 42px; }
+  .arena-hud-value { font-size: 15px; }
+  .arena-hud-combo { font-size: 11px; padding: 3px 8px; }
+}
+
+/* ─── Layout mode button active state ───────────────────────────── */
+.btn-icon--active { color: var(--c-accent) !important; border-color: var(--c-accent) !important; }
+
+/* ─── Zen mode hover strip ──────────────────────────────────────── */
+.zen-hover-strip {
+  position: fixed; top: 0; left: 0; right: 0; height: 32px;
+  background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+  z-index: 500; opacity: 0; transition: opacity var(--t-slow); pointer-events: none;
+}
+.zen-hover-strip:hover { opacity: 1; pointer-events: auto; }
+
+/* ─── Word goal tracker ─────────────────────────────────────────── */
+.status-goal-btn {
+  background: none; border: none; color: inherit; cursor: pointer;
+  font-size: 11px; padding: 0; font-family: var(--font-ui);
+}
+.status-goal-btn:hover { color: var(--c-accent); }
+.status-goal-popover {
+  position: absolute; bottom: calc(100% + 4px); left: 0;
+  background: var(--c-surface-raised); border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-sm); padding: 6px 8px;
+  display: flex; align-items: center; gap: 6px;
+  box-shadow: var(--shadow-md); z-index: 300; white-space: nowrap;
+}
+
+/* ─── Template modal ────────────────────────────────────────────── */
+.template-modal {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: min(520px, 92vw); max-height: 80vh; z-index: 901;
+  background: var(--c-surface-raised); border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-xl);
+  overflow: hidden; display: flex; flex-direction: column;
+  animation: palette-in 0.18s cubic-bezier(0.16,1,0.3,1) both;
+}
+.template-card {
+  display: flex; flex-direction: column; align-items: center; padding: 20px 12px;
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--r-md); cursor: pointer;
+  transition: border-color var(--t-base), box-shadow var(--t-base), transform var(--t-base);
+}
+.template-card:hover {
+  border-color: var(--c-accent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--c-accent) 20%, transparent);
+  transform: translateY(-2px);
+}

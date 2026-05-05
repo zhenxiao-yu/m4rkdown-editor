@@ -21,7 +21,21 @@ const s = load();
 export const focusMode = signal<boolean>((s.focusMode as boolean) ?? false);
 export const typewriterMode = signal<boolean>((s.typewriterMode as boolean) ?? false);
 export const showOutline = signal<boolean>((s.showOutline as boolean) ?? false);
+export const zenMode = signal<boolean>(false); // never persisted — always starts false
+export const wordGoal = signal<number>(parseInt(localStorage.getItem('wg') ?? '0', 10) || 0);
+export const vimMode = signal<boolean>(localStorage.getItem('m4rkdown_vim') === 'true');
+export const vimModeLabel = signal<string>('');
 
 export function toggleFocusMode() { focusMode.value = !focusMode.value; save(); }
 export function toggleTypewriterMode() { typewriterMode.value = !typewriterMode.value; save(); }
 export function toggleOutline() { showOutline.value = !showOutline.value; save(); }
+export function toggleZenMode() { zenMode.value = !zenMode.value; }
+export function setWordGoal(n: number) {
+    wordGoal.value = n;
+    try { localStorage.setItem('wg', String(n)); } catch {}
+}
+export function toggleVimMode() {
+    vimMode.value = !vimMode.value;
+    try { localStorage.setItem('m4rkdown_vim', String(vimMode.value)); } catch {}
+    if (!vimMode.value) vimModeLabel.value = '';
+}

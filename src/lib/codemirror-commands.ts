@@ -65,3 +65,41 @@ export function hrCommand(view: EditorView): boolean {
     view.focus();
     return true;
 }
+
+function toggleLinePrefix(view: EditorView, prefix: string): boolean {
+    const { state } = view;
+    const { from, to } = state.selection.main;
+    const startLine = state.doc.lineAt(from);
+    const endLine = state.doc.lineAt(to);
+    let allHave = true;
+    for (let n = startLine.number; n <= endLine.number; n++) {
+        if (!state.doc.line(n).text.startsWith(prefix)) { allHave = false; break; }
+    }
+    const changes: { from: number; to: number; insert: string }[] = [];
+    for (let n = startLine.number; n <= endLine.number; n++) {
+        const line = state.doc.line(n);
+        if (allHave) changes.push({ from: line.from, to: line.from + prefix.length, insert: '' });
+        else if (!line.text.startsWith(prefix)) changes.push({ from: line.from, to: line.from, insert: prefix });
+    }
+    view.dispatch({ changes });
+    view.focus();
+    return true;
+}
+
+function setHeadingCmd(view: EditorView, level: 1 | 2 | 3): boolean {
+    const { state } = view;
+    const line = state.doc.lineAt(state.selection.main.from);
+    const target = '#'.repeat(level) + ' ';
+    const stripped = line.text.replace(/^#{1,6}\s/, '');
+    const insert = line.text === target + stripped ? stripped : target + stripped;
+    view.dispatch({ changes: { from: line.from, to: line.to, insert } });
+    view.focus();
+    return true;
+}
+
+export const heading1Command = (v: EditorView) => setHeadingCmd(v, 1);
+export const heading2Command = (v: EditorView) => setHeadingCmd(v, 2);
+export const heading3Command = (v: EditorView) => setHeadingCmd(v, 3);
+export const bulletListCommand = (v: EditorView) => toggleLinePrefix(v, '- ');
+export const orderedListCommand = (v: EditorView) => toggleLinePrefix(v, '1. ');
+export const blockquoteCommand = (v: EditorView) => toggleLinePrefix(v, '> ');

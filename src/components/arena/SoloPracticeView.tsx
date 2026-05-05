@@ -1,8 +1,8 @@
 import { signal } from '@preact/signals';
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { generateWordQueue, wordProgress, wordScore } from '@/lib/game-engine';
 import type { WordDef } from '@/lib/game-engine';
-import { sfxPop, sfxMiss, sfxCombo, sfxCountdown, sfxGo } from '@/lib/sfx';
+import { sfxPop, sfxMiss, sfxCombo, sfxCountdown, sfxGo, sfxSetMuted, sfxIsMuted } from '@/lib/sfx';
 
 const PARTICLE_COLORS = ['#f7df4b', '#22c55e', '#3b82f6', '#a855f7', '#f97316', '#ec4899'];
 
@@ -196,6 +196,9 @@ const soloHudCombo = signal(0);
 const soloHudScore = signal(0);
 
 function GameScreen() {
+  const [muted, setMuted] = useState(sfxIsMuted());
+  function toggleMute() { const n = !muted; sfxSetMuted(n); setMuted(n); }
+
   const fieldRef  = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
   const hpRowRef  = useRef<HTMLDivElement>(null);
@@ -423,15 +426,18 @@ function GameScreen() {
       return;
     }
 
-    // Find matching word
-    for (const word of words) {
-      if (localMissed.has(word.id) || localDestroyedRef.current.has(word.id)) continue;
+    // Find matching word — pick the most urgent (highest p, closest to bottom)
+    const candidates = words.filter(word => {
+      if (localMissed.has(word.id) || localDestroyedRef.current.has(word.id)) return false;
       const p = wordProgress(word, elapsed);
-      if (p < 0 || p >= 1) continue;
-      if (word.text.startsWith(typed)) {
-        targetIdRef.current = word.id;
-        return;
-      }
+      if (p < 0 || p >= 1) return false;
+      return word.text.startsWith(typed);
+    });
+    if (candidates.length > 0) {
+      const best = candidates.reduce((a, b) =>
+        wordProgress(b, elapsed) > wordProgress(a, elapsed) ? b : a
+      );
+      targetIdRef.current = best.id;
     }
   }
 
@@ -479,6 +485,14 @@ function GameScreen() {
         {combo >= 3 && (
           <div key={combo} class="arena-hud-combo">×{combo} COMBO</div>
         )}
+        <button
+          onClick={toggleMute}
+          style={{ marginLeft: '8px', background: 'none', border: '1px solid var(--c-border)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', color: 'var(--c-muted)', fontSize: 15, lineHeight: 1, flexShrink: 0 }}
+          title={muted ? 'Unmute' : 'Mute'}
+          aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+        >
+          {muted ? '🔇' : '🔊'}
+        </button>
       </div>
 
       <div
