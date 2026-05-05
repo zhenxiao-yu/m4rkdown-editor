@@ -2,6 +2,11 @@ import { render } from 'preact';
 import { App } from './src/app';
 import './src/styles/main.css';
 import './src/styles/arena.css';
+import { inject as injectAnalytics } from '@vercel/analytics';
+import { injectSpeedInsights } from '@vercel/speed-insights';
+
+injectAnalytics();
+injectSpeedInsights();
 
 // Handle shared document via URL hash
 import { readShareHash, clearShareHash, collabRoomIdFromUrl } from './src/lib/share';
