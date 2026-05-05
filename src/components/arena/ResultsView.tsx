@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import confetti from 'canvas-confetti';
 import {
   arenaFinalPlayers, arenaSurvivorId, arenaPlayerId,
   arenaRoomId, arenaPlayerName, arenaIsHost, arenaPlayerColor,
-  closeArena,
+  arenaGameStartedAt, closeArena,
 } from '@/store/arena';
 import { connectToRoom, sendMsg } from '@/lib/partykit-client';
 import type { SurvivalPlayer } from '@/lib/arena-types';
 import { sfxWin, sfxDead } from '@/lib/sfx';
+import { recordGame, ACHIEVEMENTS, playerLevel } from '@/store/arena-stats';
+import { showToast } from '@/store/toast';
 
 const MEDAL = ['👑', '🥈', '🥉'];
 const PODIUM_HEIGHTS = ['130px', '100px', '75px'];
@@ -62,6 +64,7 @@ export function ResultsView() {
 
   const myScore = useCountUp(me?.score ?? 0);
   const isSurvivor = me?.id === survivorId;
+  const recordedRef = useRef(false);
 
   useEffect(() => {
     if (isSurvivor) {
@@ -76,6 +79,32 @@ export function ResultsView() {
     } else {
       sfxDead();
     }
+  }, []);
+
+  // Wire XP + achievement toasts (runs once)
+  useEffect(() => {
+    if (recordedRef.current || !me) return;
+    recordedRef.current = true;
+
+    const startedAt = arenaGameStartedAt.value ?? Date.now();
+    const mins = Math.max(0.5, (Date.now() - startedAt) / 60000);
+    const estimatedWpm = Math.round((me.wordsTyped * 5) / mins);
+    const prevLevel = playerLevel.value;
+
+    const newAchievements = recordGame({
+      wpm: estimatedWpm,
+      accuracy: 90,        // server doesn't track per-player accuracy yet
+      score: me.score,
+      isWin: isSurvivor,
+      promptId: 'multiplayer',
+    });
+
+    const didLevelUp = playerLevel.value !== prevLevel;
+    const toastDelay = didLevelUp ? 2400 : 0;
+    newAchievements.forEach((id, i) => {
+      const a = ACHIEVEMENTS.find(a => a.id === id);
+      if (a) setTimeout(() => showToast(`${a.icon} ${a.title} unlocked!`, 'success', 4000), toastDelay + i * 400);
+    });
   }, []);
 
   // Podium: 2nd, 1st, 3rd (center = winner)

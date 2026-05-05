@@ -12,9 +12,14 @@ import { sfxPop, sfxMiss, sfxCombo, sfxIsMuted, sfxSetMuted } from '@/lib/sfx';
 const WAVE_MS = 25_000;
 const PARTICLE_COLORS = ['#f7df4b', '#22c55e', '#3b82f6', '#a855f7', '#f97316', '#ec4899'];
 
-const hudCombo = signal(0);
-const hudScore = signal(0);
-const hudWave  = signal(1);
+const hudCombo    = signal(0);
+const hudScore    = signal(0);
+const hudWave     = signal(1);
+const hudWpm      = signal(0);
+const hudAccuracy = signal(100);
+
+function wpmColor(w: number) { return w > 60 ? '#22c55e' : w > 30 ? '#f59e0b' : '#ef4444'; }
+function accColor(a: number) { return a >= 95 ? '#22c55e' : a >= 80 ? '#f59e0b' : '#ef4444'; }
 
 function spawnParticles(el: HTMLDivElement, field: HTMLDivElement, color: string) {
   const er = el.getBoundingClientRect();
@@ -71,8 +76,11 @@ export function SurvivalGame() {
   const targetIdRef       = useRef<string | null>(null);
   const localMissedRef    = useRef<Set<string>>(new Set());
   const localDestroyedRef = useRef<Set<string>>(new Set());
+  const myWordsDoneRef    = useRef<Set<string>>(new Set());
   const comboRef          = useRef(0);
   const scoreRef          = useRef(0);
+  const charsTypedRef     = useRef(0);
+  const wpmTimerRef       = useRef(0);
 
   useEffect(() => {
     const field = fieldRef.current!;
@@ -113,6 +121,16 @@ export function SurvivalGame() {
 
       const wave = Math.min(Math.floor(elapsed / WAVE_MS) + 1, 9);
       if (wave !== prevWave) { prevWave = wave; hudWave.value = wave; }
+
+      // WPM + accuracy (throttled to every 250ms)
+      if (elapsed - wpmTimerRef.current >= 250) {
+        wpmTimerRef.current = elapsed;
+        const mins = elapsed / 60000;
+        hudWpm.value = mins > 0.05 ? Math.round((charsTypedRef.current / 5) / mins) : 0;
+        const d = myWordsDoneRef.current.size;
+        const m = localMissedRef.current.size;
+        hudAccuracy.value = (d + m) > 0 ? Math.round(d / (d + m) * 100) : 100;
+      }
 
       if (targetId && claimed.has(targetId) && claimed.get(targetId) !== myId) {
         targetIdRef.current = null;
@@ -195,15 +213,20 @@ export function SurvivalGame() {
       cancelAnimationFrame(rafRef.current);
       document.removeEventListener('visibilitychange', onVisibility);
       els.forEach(el => el.remove());
-      wordElsRef.current    = new Map();
-      localMissedRef.current   = new Set();
+      wordElsRef.current        = new Map();
+      localMissedRef.current    = new Set();
       localDestroyedRef.current = new Set();
-      targetIdRef.current   = null;
-      comboRef.current      = 0;
-      scoreRef.current      = 0;
-      hudCombo.value = 0;
-      hudScore.value = 0;
-      hudWave.value  = 1;
+      myWordsDoneRef.current    = new Set();
+      targetIdRef.current       = null;
+      comboRef.current          = 0;
+      scoreRef.current          = 0;
+      charsTypedRef.current     = 0;
+      wpmTimerRef.current       = 0;
+      hudCombo.value    = 0;
+      hudScore.value    = 0;
+      hudWave.value     = 1;
+      hudWpm.value      = 0;
+      hudAccuracy.value = 100;
     };
   }, []);
 
@@ -229,6 +252,8 @@ export function SurvivalGame() {
 
       if (typed === target.text) {
         comboRef.current++;
+        charsTypedRef.current += target.text.length;
+        myWordsDoneRef.current.add(target.id);
         const pts = wordScore(target, comboRef.current);
         scoreRef.current += pts;
         hudCombo.value = comboRef.current;
@@ -284,6 +309,8 @@ export function SurvivalGame() {
   const combo      = hudCombo.value;
   const score      = hudScore.value;
   const wave       = hudWave.value;
+  const wpm        = hudWpm.value;
+  const accuracy   = hudAccuracy.value;
   const alive      = myPlayer?.alive ?? true;
   const myHp       = myPlayer?.hp ?? 5;
 
@@ -319,6 +346,16 @@ export function SurvivalGame() {
               <div class="arena-wave-bar-fill" style={{ width: `${waveProgress * 100}%` }} />
             </div>
           </div>
+        </div>
+
+        <div class="arena-hud-item">
+          <span class="arena-hud-value" style={{ color: wpmColor(wpm) }}>{wpm}</span>
+          <span class="arena-hud-label">WPM</span>
+        </div>
+
+        <div class="arena-hud-item">
+          <span class="arena-hud-value" style={{ color: accColor(accuracy) }}>{accuracy}%</span>
+          <span class="arena-hud-label">ACC</span>
         </div>
 
         <div class="arena-hud-item" style={{ marginLeft: 'auto' }}>

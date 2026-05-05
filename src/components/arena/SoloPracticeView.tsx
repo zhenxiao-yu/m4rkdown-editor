@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { generateWordQueue, wordProgress, wordScore } from '@/lib/game-engine';
 import type { WordDef } from '@/lib/game-engine';
 import { sfxPop, sfxMiss, sfxCombo, sfxCountdown, sfxGo, sfxSetMuted, sfxIsMuted } from '@/lib/sfx';
+import { recordGame, ACHIEVEMENTS, playerLevel } from '@/store/arena-stats';
+import { showToast } from '@/store/toast';
 
 const PARTICLE_COLORS = ['#f7df4b', '#22c55e', '#3b82f6', '#a855f7', '#f97316', '#ec4899'];
 
@@ -47,38 +49,61 @@ function flashDamage(field: HTMLDivElement) {
   setTimeout(() => f.remove(), 500);
 }
 
+function wpmColor(w: number) { return w > 60 ? '#22c55e' : w > 30 ? '#f59e0b' : '#ef4444'; }
+function accColor(a: number) { return a >= 95 ? '#22c55e' : a >= 80 ? '#f59e0b' : '#ef4444'; }
+
 // ── Solo game signals (persist across re-renders, reset on new game) ──
 type SoloState = 'idle' | 'countdown' | 'playing' | 'dead' | 'survived';
 
-const soloState     = signal<SoloState>('idle');
-const soloCountdown = signal(3);
-const soloHp        = signal(5);
-const soloScore     = signal(0);
-const soloCombo     = signal(0);
-const soloWords     = signal<WordDef[]>([]);
+const soloState      = signal<SoloState>('idle');
+const soloCountdown  = signal(3);
+const soloHp         = signal(5);
+const soloScore      = signal(0);
+const soloCombo      = signal(0);
+const soloWords      = signal<WordDef[]>([]);
 const soloWordsTyped = signal(0);
-const soloStartedAt = signal<number | null>(null);
+const soloStartedAt  = signal<number | null>(null);
+
+// HUD live signals
+const soloHudWave     = signal(1);
+const soloHudCombo    = signal(0);
+const soloHudScore    = signal(0);
+const soloHudWpm      = signal(0);
+const soloHudAccuracy = signal(100);
+
+// Final values captured at game-end for GameOverScreen
+const soloFinalWpm      = signal(0);
+const soloFinalAccuracy = signal(100);
 
 function resetSolo() {
-  soloState.value     = 'idle';
-  soloCountdown.value = 3;
-  soloHp.value        = 5;
-  soloScore.value     = 0;
-  soloCombo.value     = 0;
-  soloWords.value     = [];
+  soloState.value      = 'idle';
+  soloCountdown.value  = 3;
+  soloHp.value         = 5;
+  soloScore.value      = 0;
+  soloCombo.value      = 0;
+  soloWords.value      = [];
   soloWordsTyped.value = 0;
-  soloStartedAt.value = null;
+  soloStartedAt.value  = null;
+  soloHudWpm.value     = 0;
+  soloHudAccuracy.value = 100;
+  soloFinalWpm.value   = 0;
+  soloFinalAccuracy.value = 100;
 }
 
 function startNewGame() {
   const seed = Math.floor(Math.random() * 0xFFFFFF);
-  soloWords.value = generateWordQueue(seed);
-  soloHp.value    = 5;
-  soloScore.value = 0;
-  soloCombo.value = 0;
+  soloWords.value      = generateWordQueue(seed);
+  soloHp.value         = 5;
+  soloScore.value      = 0;
+  soloCombo.value      = 0;
   soloWordsTyped.value = 0;
   soloStartedAt.value  = null;
   soloCountdown.value  = 3;
+  soloHudWave.value    = 1;
+  soloHudCombo.value   = 0;
+  soloHudScore.value   = 0;
+  soloHudWpm.value     = 0;
+  soloHudAccuracy.value = 100;
   soloState.value      = 'countdown';
 }
 
@@ -105,7 +130,7 @@ function IdleScreen() {
         Miss 5 and it's game over. Survive 8 minutes to win!
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 340 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div class="arena-idle-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <InfoChip icon="🌊" label="9 Waves" sub="25s each" />
           <InfoChip icon="💀" label="5 Lives" sub="miss = -1 HP" />
           <InfoChip icon="⚡" label="Combo" sub="streak bonus" />
@@ -190,11 +215,6 @@ function CountdownScreen() {
 
 const WAVE_MS = 25_000;
 
-// Module-level HUD signals (reset on each game)
-const soloHudWave  = signal(1);
-const soloHudCombo = signal(0);
-const soloHudScore = signal(0);
-
 function GameScreen() {
   const [muted, setMuted] = useState(sfxIsMuted());
   function toggleMute() { const n = !muted; sfxSetMuted(n); setMuted(n); }
@@ -213,19 +233,25 @@ function GameScreen() {
   const scoreRef          = useRef(0);
   const hpRef             = useRef(5);
   const wordsTypedRef     = useRef(0);
+  const charsTypedRef     = useRef(0);
+  const wpmTimerRef       = useRef(0);
 
   useEffect(() => {
     const field = fieldRef.current!;
     const words = soloWords.value;
 
     // Reset local refs
-    comboRef.current      = 0;
-    scoreRef.current      = 0;
-    hpRef.current         = 5;
-    wordsTypedRef.current = 0;
-    soloHudWave.value     = 1;
-    soloHudCombo.value    = 0;
-    soloHudScore.value    = 0;
+    comboRef.current       = 0;
+    scoreRef.current       = 0;
+    hpRef.current          = 5;
+    wordsTypedRef.current  = 0;
+    charsTypedRef.current  = 0;
+    wpmTimerRef.current    = 0;
+    soloHudWave.value      = 1;
+    soloHudCombo.value     = 0;
+    soloHudScore.value     = 0;
+    soloHudWpm.value       = 0;
+    soloHudAccuracy.value  = 100;
 
     // Build word DOM nodes
     const els = new Map<string, HTMLDivElement>();
@@ -245,7 +271,7 @@ function GameScreen() {
     const localMissed    = localMissedRef.current;
     const localDestroyed = localDestroyedRef.current;
 
-    // Pause/resume when tab is hidden — freeze startedAt offset
+    // Pause/resume when tab is hidden
     let pausedAt: number | null = null;
     function onVisibility() {
       if (document.hidden) {
@@ -275,12 +301,22 @@ function GameScreen() {
       const wave = Math.min(Math.floor(elapsed / WAVE_MS) + 1, 9);
       if (wave !== prevWave) { prevWave = wave; soloHudWave.value = wave; }
 
+      // WPM + accuracy (throttled to every 250ms)
+      if (elapsed - wpmTimerRef.current >= 250) {
+        wpmTimerRef.current = elapsed;
+        const mins = elapsed / 60000;
+        soloHudWpm.value = mins > 0.05 ? Math.round((charsTypedRef.current / 5) / mins) : 0;
+        const d = localDestroyed.size;
+        const m = localMissed.size;
+        soloHudAccuracy.value = (d + m) > 0 ? Math.round(d / (d + m) * 100) : 100;
+      }
+
       for (const word of words) {
         const el = els.get(word.id);
         if (!el) continue;
 
         if (localDestroyed.has(word.id)) {
-          continue; // already animated
+          continue;
         }
 
         if (localMissed.has(word.id)) {
@@ -299,7 +335,6 @@ function GameScreen() {
               targetIdRef.current = null;
               if (inputRef.current) inputRef.current.value = '';
             }
-            // Lose HP
             hpRef.current = Math.max(0, hpRef.current - 1);
             soloHp.value = hpRef.current;
             soloCombo.value = 0;
@@ -309,6 +344,8 @@ function GameScreen() {
             if (hpRef.current === 0) {
               soloWordsTyped.value = wordsTypedRef.current;
               soloScore.value = scoreRef.current;
+              soloFinalWpm.value = soloHudWpm.value;
+              soloFinalAccuracy.value = soloHudAccuracy.value;
               soloState.value = 'dead';
               cancelAnimationFrame(rafRef.current);
               return;
@@ -321,7 +358,6 @@ function GameScreen() {
         el.style.display = 'block';
         el.style.transform = `translateY(${p * fieldH}px)`;
 
-        // Urgency
         if (p > 0.85) {
           el.classList.remove('arena-word--urgent-1');
           el.classList.add('arena-word--urgent-2');
@@ -332,7 +368,6 @@ function GameScreen() {
           el.classList.remove('arena-word--urgent-1', 'arena-word--urgent-2');
         }
 
-        // Target word shows typed prefix
         if (word.id === targetId) {
           el.classList.add('arena-word--mine');
           const n = typedPfx.length;
@@ -343,11 +378,13 @@ function GameScreen() {
         }
       }
 
-      // Check if all words are done (8-min game completed)
+      // Check if all words done (8-min game completed)
       const allDone = words.every(w => localMissed.has(w.id) || localDestroyed.has(w.id));
       if (allDone) {
         soloWordsTyped.value = wordsTypedRef.current;
         soloScore.value = scoreRef.current;
+        soloFinalWpm.value = soloHudWpm.value;
+        soloFinalAccuracy.value = soloHudAccuracy.value;
         soloState.value = 'survived';
         cancelAnimationFrame(rafRef.current);
         return;
@@ -362,10 +399,10 @@ function GameScreen() {
       cancelAnimationFrame(rafRef.current);
       document.removeEventListener('visibilitychange', onVisibility);
       els.forEach(el => el.remove());
-      wordElsRef.current    = new Map();
+      wordElsRef.current       = new Map();
       localMissedRef.current   = new Set();
       localDestroyedRef.current = new Set();
-      targetIdRef.current   = null;
+      targetIdRef.current      = null;
     };
   }, []);
 
@@ -375,8 +412,8 @@ function GameScreen() {
 
     if (!typed) { targetIdRef.current = null; return; }
 
-    const elapsed   = Date.now() - (soloStartedAt.value ?? 0);
-    const words     = soloWords.value;
+    const elapsed        = Date.now() - (soloStartedAt.value ?? 0);
+    const words          = soloWords.value;
     const localMissed    = localMissedRef.current;
     const localDestroyed = localDestroyedRef.current;
 
@@ -387,8 +424,8 @@ function GameScreen() {
       }
 
       if (typed === target.text) {
-        // Destroy word
         localDestroyedRef.current.add(target.id);
+        charsTypedRef.current += target.text.length;
         comboRef.current++;
         const pts = wordScore(target, comboRef.current);
         scoreRef.current += pts;
@@ -414,7 +451,6 @@ function GameScreen() {
       }
 
       if (!target.text.startsWith(typed)) {
-        // Block wrong key
         let correct = '';
         for (let i = 0; i < typed.length; i++) {
           if (i >= target.text.length || typed[i] !== target.text[i]) break;
@@ -441,10 +477,12 @@ function GameScreen() {
     }
   }
 
-  const hp    = soloHp.value;
-  const wave  = soloHudWave.value;
-  const combo = soloHudCombo.value;
-  const score = soloHudScore.value;
+  const hp       = soloHp.value;
+  const wave     = soloHudWave.value;
+  const combo    = soloHudCombo.value;
+  const score    = soloHudScore.value;
+  const wpm      = soloHudWpm.value;
+  const accuracy = soloHudAccuracy.value;
 
   // Shake HP row + SFX on HP loss
   useEffect(() => {
@@ -476,6 +514,17 @@ function GameScreen() {
             </div>
           </div>
         </div>
+
+        <div class="arena-hud-item">
+          <span class="arena-hud-value" style={{ color: wpmColor(wpm) }}>{wpm}</span>
+          <span class="arena-hud-label">WPM</span>
+        </div>
+
+        <div class="arena-hud-item">
+          <span class="arena-hud-value" style={{ color: accColor(accuracy) }}>{accuracy}%</span>
+          <span class="arena-hud-label">ACC</span>
+        </div>
+
         <div class="arena-hud-item" style={{ marginLeft: 'auto' }}>
           <span class="arena-hud-value" style={{ color: 'var(--c-accent)', fontSize: '22px' }}>
             {score.toLocaleString()}
@@ -529,10 +578,30 @@ function GameScreen() {
 // ── Game Over / Survived ──────────────────────────────────────────────
 
 function GameOverScreen() {
-  const survived    = soloState.value === 'survived';
-  const score       = soloScore.value;
-  const wordsTyped  = soloWordsTyped.value;
-  const combo       = soloCombo.value;
+  const survived   = soloState.value === 'survived';
+  const score      = soloScore.value;
+  const wordsTyped = soloWordsTyped.value;
+  const combo      = soloCombo.value;
+  const wpm        = soloFinalWpm.value;
+  const accuracy   = soloFinalAccuracy.value;
+
+  // Wire XP + achievement toasts (runs once on mount)
+  useEffect(() => {
+    const prevLevel = playerLevel.value;
+    const newAchievements = recordGame({
+      wpm,
+      accuracy,
+      score,
+      isWin: survived,
+      promptId: 'solo',
+    });
+    const didLevelUp = playerLevel.value !== prevLevel;
+    const toastDelay = didLevelUp ? 2400 : 0;
+    newAchievements.forEach((id, i) => {
+      const a = ACHIEVEMENTS.find(a => a.id === id);
+      if (a) setTimeout(() => showToast(`${a.icon} ${a.title} unlocked!`, 'success', 4000), toastDelay + i * 400);
+    });
+  }, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 20, padding: 40, textAlign: 'center' }}>
@@ -542,9 +611,11 @@ function GameOverScreen() {
       </div>
 
       <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <Stat label="Score"       value={score.toLocaleString()}  color="var(--c-accent)" />
-        <Stat label="Words"       value={String(wordsTyped)}      color="var(--c-text)" />
-        <Stat label="Best Combo"  value={`×${combo}`}             color="#f59e0b" />
+        <Stat label="Score"      value={score.toLocaleString()}  color="var(--c-accent)" />
+        <Stat label="Words"      value={String(wordsTyped)}      color="var(--c-text)" />
+        <Stat label="Best Combo" value={`×${combo}`}             color="#f59e0b" />
+        <Stat label="WPM"        value={String(wpm)}             color={wpmColor(wpm)} />
+        <Stat label="Accuracy"   value={`${accuracy}%`}          color={accColor(accuracy)} />
       </div>
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>

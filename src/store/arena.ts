@@ -49,8 +49,10 @@ export const arenaPublicRooms   = signal<PublicRoomInfo[]>([]);
 
 // ── Status ────────────────────────────────────────────────────────────
 
-export const arenaError         = signal<string | null>(null);
-export const arenaConnecting    = signal<boolean>(false);
+export const arenaError             = signal<string | null>(null);
+export const arenaConnecting        = signal<boolean>(false);
+export const arenaReconnecting      = signal<boolean>(false);
+export const arenaReconnectAttempt  = signal<number>(0);
 
 // ── Results ───────────────────────────────────────────────────────────
 
@@ -84,8 +86,10 @@ export function closeArena(): void {
     arenaMissedWords.value   = new Set();
     arenaFinalPlayers.value  = [];
     arenaSurvivorId.value    = null;
-    arenaError.value         = null;
-    arenaConnecting.value    = false;
+    arenaError.value             = null;
+    arenaConnecting.value        = false;
+    arenaReconnecting.value      = false;
+    arenaReconnectAttempt.value  = 0;
   });
 }
 
