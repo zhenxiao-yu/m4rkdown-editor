@@ -16,36 +16,21 @@ const homeTab = signal<HomeTab>('solo');
 
 const PLAYER_COLORS = ['#f7df4b', '#ef4444', '#3b82f6', '#22c55e', '#a855f7', '#f97316', '#ec4899'];
 
-function tabStyle(active: boolean) {
-  return {
-    padding: '8px 18px',
-    fontSize: '13px',
-    fontWeight: active ? 700 : 400,
-    color: active ? 'var(--c-accent)' : 'var(--c-muted)',
-    borderBottom: active ? '2px solid var(--c-accent)' : '2px solid transparent',
-    cursor: 'pointer',
-    background: 'none',
-    border: 'none',
-    borderRadius: 0,
-    fontFamily: 'var(--font-ui)',
-  } as const;
-}
-
 function ColorPicker() {
   const current = arenaPlayerColor.value;
   return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
       {PLAYER_COLORS.map(c => (
         <button
           key={c}
           onClick={() => { arenaPlayerColor.value = c; }}
           style={{
-            width: 28, height: 28, borderRadius: '50%', background: c, cursor: 'pointer',
+            width: 32, height: 32, borderRadius: '50%', background: c, cursor: 'pointer',
             border: current === c ? '3px solid var(--c-text)' : '3px solid transparent',
             outline: current === c ? `2px solid ${c}` : 'none',
-            outlineOffset: 2,
-            padding: 0,
-            transition: 'border 0.1s, outline 0.1s',
+            outlineOffset: 2, padding: 0,
+            transition: 'border 0.12s, outline 0.12s, transform 0.12s',
+            transform: current === c ? 'scale(1.15)' : 'scale(1)',
           }}
           title={c}
         />
@@ -54,7 +39,7 @@ function ColorPicker() {
   );
 }
 
-function MultiplayerView() {
+function MultiplayerHub() {
   const [tab, setTab]           = useState<MultiTab>('create');
   const [name, setName]         = useState('');
   const [roomCode, setRoomCode] = useState('');
@@ -66,37 +51,29 @@ function MultiplayerView() {
 
   function handleCreate() {
     const trimName = name.trim().slice(0, 20);
-    if (!trimName) { arenaError.value = 'Please enter your name.'; return; }
-
+    if (!trimName) { arenaError.value = 'Enter your name to continue.'; return; }
     const code = generateRoomCode();
     arenaPlayerName.value = trimName;
     arenaIsHost.value     = true;
     arenaConnecting.value = true;
     arenaError.value      = null;
-
     const customWords = customWordList.value && customWordList.value.length >= 20
       ? btoa(customWordList.value.join(','))
       : undefined;
-
     connectToRoom(code);
     sendMsg({ type: 'join', playerName: trimName, roomId: code, color: arenaPlayerColor.value, isHost: true, customWords });
-
-    if (isPublic) {
-      setTimeout(() => sendMsg({ type: 'publish' }), 500);
-    }
+    if (isPublic) setTimeout(() => sendMsg({ type: 'publish' }), 500);
   }
 
   function handleJoin() {
     const trimName = joinName.trim().slice(0, 20);
     const trimCode = roomCode.trim().toUpperCase();
-    if (!trimName) { arenaError.value = 'Please enter your name.'; return; }
-    if (!trimCode) { arenaError.value = 'Please enter a room code.'; return; }
-
+    if (!trimName) { arenaError.value = 'Enter your name to continue.'; return; }
+    if (!trimCode) { arenaError.value = 'Enter a room code.'; return; }
     arenaPlayerName.value = trimName;
     arenaIsHost.value     = false;
     arenaConnecting.value = true;
     arenaError.value      = null;
-
     connectToRoom(trimCode);
     sendMsg({ type: 'join', playerName: trimName, roomId: trimCode, color: arenaPlayerColor.value, isHost: false });
   }
@@ -118,26 +95,28 @@ function MultiplayerView() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      {/* Sub-tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--c-border)', padding: '0 20px', flexShrink: 0 }}>
-        <button class="arena-tab-btn" style={tabStyle(tab === 'create')} onClick={() => setTab('create')}>Create Room</button>
-        <button class="arena-tab-btn" style={tabStyle(tab === 'join')}   onClick={() => setTab('join')}>Join Room</button>
-        <button class="arena-tab-btn" style={tabStyle(tab === 'browse')} onClick={handleBrowseTab}>Browse Public</button>
+    <div class="arena-mp-hub">
+      {/* Sub-nav pills */}
+      <div class="arena-mp-nav">
+        <button class={`arena-mp-tab${tab === 'create' ? ' active' : ''}`} onClick={() => setTab('create')}>+ Create</button>
+        <button class={`arena-mp-tab${tab === 'join'   ? ' active' : ''}`} onClick={() => setTab('join')}>→ Join</button>
+        <button class={`arena-mp-tab${tab === 'browse' ? ' active' : ''}`} onClick={handleBrowseTab}>🌐 Browse</button>
       </div>
 
       {err && (
-        <div style={{ padding: '10px 20px', background: '#dc262622', color: '#f87171', fontSize: '13px', borderBottom: '1px solid #dc262644', flexShrink: 0 }}>
-          {err}
-        </div>
+        <div class="arena-error-bar">{err}</div>
       )}
 
-      <div style={{ flex: 1, overflow: 'auto', padding: '24px 28px' }}>
+      <div class="arena-mp-content">
 
         {/* ── Create ── */}
         {tab === 'create' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '480px' }}>
-            <Field label="Your Name">
+          <div class="arena-form-card">
+            <div class="arena-form-card-title">Host a Room</div>
+            <div class="arena-form-card-sub">You'll get a room code to share with friends.</div>
+
+            <div class="arena-field">
+              <label class="arena-field-label">Your Name</label>
               <input
                 class="arena-input"
                 type="text"
@@ -146,41 +125,43 @@ function MultiplayerView() {
                 value={name}
                 onInput={(e) => setName((e.target as HTMLInputElement).value)}
               />
-            </Field>
+            </div>
 
-            <Field label="Your Color">
+            <div class="arena-field">
+              <label class="arena-field-label">Your Color</label>
               <ColorPicker />
-            </Field>
+            </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label class="arena-toggle-row">
               <input
                 type="checkbox"
-                id="public-toggle"
                 checked={isPublic}
                 onChange={(e) => setPublic((e.target as HTMLInputElement).checked)}
-                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--c-accent)' }}
               />
-              <label for="public-toggle" style={{ fontSize: '13px', color: 'var(--c-muted)', cursor: 'pointer' }}>
-                List this room publicly (anyone can browse and join)
-              </label>
-            </div>
+              <span style={{ fontSize: 13, color: 'var(--c-muted)' }}>List room publicly so anyone can browse and join</span>
+            </label>
 
-            <div style={{ padding: '12px 16px', background: 'var(--c-surface-alt)', borderRadius: 8, border: '1px solid var(--c-border)', fontSize: 13, color: 'var(--c-muted)', lineHeight: 1.6 }}>
-              <strong style={{ color: 'var(--c-text)' }}>Survival Mode</strong> — Words fall from the sky. Type them before they hit the bottom. Miss 5 and you're out. Last player standing wins!
-            </div>
-
-            <button onClick={handleCreate} disabled={connecting} class="arena-btn-primary">
-              {connecting ? 'Creating…' : '🚀 Create Room'}
+            <button onClick={handleCreate} disabled={connecting} class="arena-btn-primary arena-btn-lg">
+              {connecting ? 'Creating room…' : '🚀 Create Room'}
             </button>
+
+            <div class="arena-mode-tip">
+              <strong>Survival Mode</strong> — Words fall from the sky. Type them before they hit the bottom. Miss 5 and you're out. Last player standing wins.
+            </div>
           </div>
         )}
 
         {/* ── Join ── */}
         {tab === 'join' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '400px' }}>
-            <Field label="Room Code">
+          <div class="arena-form-card">
+            <div class="arena-form-card-title">Join a Room</div>
+            <div class="arena-form-card-sub">Enter the code your host shared with you.</div>
+
+            <div class="arena-field">
+              <label class="arena-field-label">Room Code</label>
               <input
-                class="arena-input"
+                class="arena-input arena-code-input"
                 type="text"
                 placeholder="M4-XXX"
                 maxLength={6}
@@ -189,11 +170,11 @@ function MultiplayerView() {
                   const v = (e.target as HTMLInputElement).value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
                   setRoomCode(v);
                 }}
-                style={{ fontFamily: 'monospace', letterSpacing: '0.15em', fontSize: '18px', textAlign: 'center' }}
               />
-            </Field>
+            </div>
 
-            <Field label="Your Name">
+            <div class="arena-field">
+              <label class="arena-field-label">Your Name</label>
               <input
                 class="arena-input"
                 type="text"
@@ -202,13 +183,14 @@ function MultiplayerView() {
                 value={joinName}
                 onInput={(e) => setJoinName((e.target as HTMLInputElement).value)}
               />
-            </Field>
+            </div>
 
-            <Field label="Your Color">
+            <div class="arena-field">
+              <label class="arena-field-label">Your Color</label>
               <ColorPicker />
-            </Field>
+            </div>
 
-            <button onClick={handleJoin} disabled={connecting} class="arena-btn-primary">
+            <button onClick={handleJoin} disabled={connecting} class="arena-btn-primary arena-btn-lg">
               {connecting ? 'Joining…' : '🔑 Join Room'}
             </button>
           </div>
@@ -216,46 +198,38 @@ function MultiplayerView() {
 
         {/* ── Browse ── */}
         {tab === 'browse' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div class="arena-browse">
             {arenaPublicRooms.value.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--c-muted)' }}>
-                <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏟️</div>
-                <div style={{ fontSize: '15px', fontWeight: 600 }}>No public rooms open</div>
-                <div style={{ fontSize: '13px', marginTop: '6px' }}>Create one and make it public to appear here!</div>
+              <div class="arena-empty-state">
+                <div style={{ fontSize: 48, marginBottom: 12 }}>🏟️</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--c-text)', marginBottom: 6 }}>No public rooms open</div>
+                <div style={{ fontSize: 13, color: 'var(--c-muted)' }}>Create one and make it public to appear here.</div>
               </div>
-            ) : arenaPublicRooms.value.map(r => (
-              <div
-                key={r.roomId}
-                style={{
-                  padding: '14px 18px', borderRadius: '10px', border: '1px solid var(--c-border)',
-                  background: 'var(--c-surface-alt)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--c-text)' }}>
-                    {r.hostName}'s room
+            ) : (
+              <div class="arena-room-list">
+                {arenaPublicRooms.value.map(r => (
+                  <div key={r.roomId} class="arena-room-card">
+                    <div class="arena-room-card-info">
+                      <div class="arena-room-card-host">{r.hostName}'s room</div>
+                      <div class="arena-room-card-meta">
+                        <span>{r.playerCount} / 8 players</span>
+                        <span class={`arena-room-status ${r.status === 'playing' ? 'playing' : 'open'}`}>
+                          {r.status === 'playing' ? 'In Progress' : 'Open'}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleJoinPublic(r.roomId)}
+                      disabled={r.status === 'playing' || connecting}
+                      class="arena-btn-primary"
+                      style={{ flexShrink: 0 }}
+                    >
+                      Join
+                    </button>
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--c-muted)', marginTop: '3px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <span>{r.playerCount} players</span>
-                    <span style={{
-                      padding: '1px 6px', borderRadius: '8px', fontSize: '10px', fontWeight: 700,
-                      background: r.status === 'playing' ? '#7c3aed22' : '#16a34a22',
-                      color: r.status === 'playing' ? '#a78bfa' : '#22c55e',
-                    }}>
-                      {r.status === 'playing' ? 'In Progress' : 'Open'}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleJoinPublic(r.roomId)}
-                  disabled={r.status === 'playing' || connecting}
-                  class="arena-btn-primary"
-                  style={{ flexShrink: 0, padding: '6px 16px', fontSize: '13px' }}
-                >
-                  Join
-                </button>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
@@ -303,29 +277,20 @@ function PlayerProfileCard() {
 
 export function HomeView() {
   const current = homeTab.value;
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <PlayerProfileCard />
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--c-border)', padding: '0 20px', flexShrink: 0, background: 'var(--c-surface)' }}>
-        <button class="arena-tab-btn" style={tabStyle(current === 'solo')}  onClick={() => { homeTab.value = 'solo'; }}>⚡ Solo Practice</button>
-        <button class="arena-tab-btn" style={tabStyle(current === 'multi')} onClick={() => { homeTab.value = 'multi'; }}>⚔️ Multiplayer</button>
-      </div>
-      <div style={{ flex: 1, overflow: 'hidden', minHeight: 0, position: 'relative' }}>
-        {current === 'solo'  && <SoloPracticeView />}
-        {current === 'multi' && <MultiplayerView />}
-      </div>
-    </div>
-  );
-}
 
-function Field({ label, children }: { label: string; children: preact.ComponentChildren }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        {label}
-      </label>
-      {children}
+      {/* Mode nav */}
+      <div class="arena-mode-nav">
+        <button class={`arena-mode-pill${current === 'solo'  ? ' active' : ''}`} onClick={() => { homeTab.value = 'solo';  }}>⚡ Solo Practice</button>
+        <button class={`arena-mode-pill${current === 'multi' ? ' active' : ''}`} onClick={() => { homeTab.value = 'multi'; }}>⚔️ Multiplayer</button>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+        {current === 'solo'  && <SoloPracticeView />}
+        {current === 'multi' && <MultiplayerHub />}
+      </div>
     </div>
   );
 }
