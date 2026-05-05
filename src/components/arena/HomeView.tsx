@@ -1,30 +1,18 @@
 import { signal } from '@preact/signals';
-import { ARENA_PROMPTS, getRandomPrompt } from '@/lib/arena-prompts';
-import type { ArenaPrompt, Difficulty } from '@/lib/arena-types';
+import { useState } from 'preact/hooks';
 import {
   arenaError, arenaConnecting, arenaPublicRooms,
-  arenaPlayerName, arenaIsHost, generateRoomCode,
+  arenaPlayerName, arenaIsHost, arenaPlayerColor, generateRoomCode,
 } from '@/store/arena';
 import { connectToRoom, connectToBrowse, sendMsg } from '@/lib/partykit-client';
 import { SoloPracticeView } from './SoloPracticeView';
-import { useState } from 'preact/hooks';
 
-type HomeTab = 'solo' | 'multi';
+type HomeTab  = 'solo' | 'multi';
 type MultiTab = 'create' | 'join' | 'browse';
 
 const homeTab = signal<HomeTab>('solo');
 
-const DIFF_COLORS: Record<string, string> = {
-  easy: '#16a34a', medium: '#d97706', hard: '#dc2626', custom: '#7c3aed',
-};
-
-function DiffBadge({ diff }: { diff: Difficulty }) {
-  return (
-    <span class={`arena-badge arena-badge-${diff}`} style={{ background: DIFF_COLORS[diff] }}>
-      {diff}
-    </span>
-  );
-}
+const PLAYER_COLORS = ['#f7df4b', '#ef4444', '#3b82f6', '#22c55e', '#a855f7', '#f97316', '#ec4899'];
 
 function tabStyle(active: boolean) {
   return {
@@ -41,40 +29,51 @@ function tabStyle(active: boolean) {
   } as const;
 }
 
+function ColorPicker() {
+  const current = arenaPlayerColor.value;
+  return (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {PLAYER_COLORS.map(c => (
+        <button
+          key={c}
+          onClick={() => { arenaPlayerColor.value = c; }}
+          style={{
+            width: 28, height: 28, borderRadius: '50%', background: c, cursor: 'pointer',
+            border: current === c ? '3px solid var(--c-text)' : '3px solid transparent',
+            outline: current === c ? `2px solid ${c}` : 'none',
+            outlineOffset: 2,
+            padding: 0,
+            transition: 'border 0.1s, outline 0.1s',
+          }}
+          title={c}
+        />
+      ))}
+    </div>
+  );
+}
+
 function MultiplayerView() {
   const [tab, setTab]           = useState<MultiTab>('create');
   const [name, setName]         = useState('');
   const [roomCode, setRoomCode] = useState('');
-  const [difficulty, setDiff]   = useState<Difficulty | 'random'>('random');
-  const [selectedPrompt, setPrompt] = useState<ArenaPrompt | null>(null);
-  const [customText, setCustom] = useState('');
-  const [useCustom, setUseCustom] = useState(false);
   const [isPublic, setPublic]   = useState(false);
   const [joinName, setJoinName] = useState('');
 
-  const err = arenaError.value;
+  const err        = arenaError.value;
   const connecting = arenaConnecting.value;
 
   function handleCreate() {
     const trimName = name.trim().slice(0, 20);
     if (!trimName) { arenaError.value = 'Please enter your name.'; return; }
-    if (useCustom && !customText.trim()) { arenaError.value = 'Please enter a custom prompt.'; return; }
 
     const code = generateRoomCode();
     arenaPlayerName.value = trimName;
-    arenaIsHost.value = true;
+    arenaIsHost.value     = true;
     arenaConnecting.value = true;
-    arenaError.value = null;
+    arenaError.value      = null;
 
     connectToRoom(code);
-
-    sendMsg({
-      type: 'join',
-      playerName: trimName,
-      roomId: code,
-      isHost: true,
-      ...(useCustom ? { customPrompt: customText.trim() } : { promptId: selectedPrompt?.id }),
-    });
+    sendMsg({ type: 'join', playerName: trimName, roomId: code, color: arenaPlayerColor.value, isHost: true });
 
     if (isPublic) {
       setTimeout(() => sendMsg({ type: 'publish' }), 500);
@@ -88,12 +87,12 @@ function MultiplayerView() {
     if (!trimCode) { arenaError.value = 'Please enter a room code.'; return; }
 
     arenaPlayerName.value = trimName;
-    arenaIsHost.value = false;
+    arenaIsHost.value     = false;
     arenaConnecting.value = true;
-    arenaError.value = null;
+    arenaError.value      = null;
 
     connectToRoom(trimCode);
-    sendMsg({ type: 'join', playerName: trimName, roomId: trimCode, isHost: false });
+    sendMsg({ type: 'join', playerName: trimName, roomId: trimCode, color: arenaPlayerColor.value, isHost: false });
   }
 
   function handleBrowseTab() {
@@ -102,26 +101,22 @@ function MultiplayerView() {
   }
 
   function handleJoinPublic(roomId: string) {
-    const trimName = (name || joinName).trim().slice(0, 20);
+    const trimName = (joinName || name).trim().slice(0, 20);
     if (!trimName) { arenaError.value = 'Enter your name in the Join tab first.'; return; }
     arenaPlayerName.value = trimName;
-    arenaIsHost.value = false;
+    arenaIsHost.value     = false;
     arenaConnecting.value = true;
-    arenaError.value = null;
+    arenaError.value      = null;
     connectToRoom(roomId);
-    sendMsg({ type: 'join', playerName: trimName, roomId, isHost: false });
+    sendMsg({ type: 'join', playerName: trimName, roomId, color: arenaPlayerColor.value, isHost: false });
   }
-
-  const promptsToShow = difficulty === 'random'
-    ? ARENA_PROMPTS
-    : ARENA_PROMPTS.filter(p => p.difficulty === difficulty);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Sub-tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--c-border)', padding: '0 20px', flexShrink: 0 }}>
         <button style={tabStyle(tab === 'create')} onClick={() => setTab('create')}>Create Room</button>
-        <button style={tabStyle(tab === 'join')} onClick={() => setTab('join')}>Join Room</button>
+        <button style={tabStyle(tab === 'join')}   onClick={() => setTab('join')}>Join Room</button>
         <button style={tabStyle(tab === 'browse')} onClick={handleBrowseTab}>Browse Public</button>
       </div>
 
@@ -135,7 +130,7 @@ function MultiplayerView() {
 
         {/* ── Create ── */}
         {tab === 'create' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '600px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '480px' }}>
             <Field label="Your Name">
               <input
                 class="arena-input"
@@ -147,67 +142,8 @@ function MultiplayerView() {
               />
             </Field>
 
-            <Field label="Prompt">
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                {(['random', 'easy', 'medium', 'hard'] as const).map(d => (
-                  <button
-                    key={d}
-                    onClick={() => { setDiff(d); setPrompt(null); setUseCustom(false); }}
-                    style={{
-                      padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                      border: difficulty === d ? '2px solid var(--c-accent)' : '2px solid var(--c-border)',
-                      background: difficulty === d ? 'var(--c-accent)20' : 'transparent',
-                      color: difficulty === d ? 'var(--c-accent)' : 'var(--c-muted)',
-                      textTransform: 'capitalize',
-                    }}
-                  >
-                    {d === 'random' ? 'Random' : d.charAt(0).toUpperCase() + d.slice(1)}
-                  </button>
-                ))}
-                <button
-                  onClick={() => { setUseCustom(true); setPrompt(null); }}
-                  style={{
-                    padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                    border: useCustom ? '2px solid #7c3aed' : '2px solid var(--c-border)',
-                    background: useCustom ? '#7c3aed20' : 'transparent',
-                    color: useCustom ? '#a78bfa' : 'var(--c-muted)',
-                  }}
-                >
-                  Custom
-                </button>
-              </div>
-
-              {useCustom ? (
-                <textarea
-                  class="arena-input"
-                  placeholder="Paste your markdown prompt here..."
-                  rows={6}
-                  value={customText}
-                  onInput={(e) => setCustom((e.target as HTMLTextAreaElement).value)}
-                  style={{ resize: 'vertical', fontFamily: 'monospace', fontSize: '12px' }}
-                />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflow: 'auto' }}>
-                  {promptsToShow.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => setPrompt(p)}
-                      style={{
-                        textAlign: 'left', padding: '10px 14px', borderRadius: '8px', cursor: 'pointer',
-                        border: selectedPrompt?.id === p.id ? '2px solid var(--c-accent)' : '2px solid var(--c-border)',
-                        background: selectedPrompt?.id === p.id ? 'var(--c-accent)10' : 'var(--c-surface-alt)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
-                      }}
-                    >
-                      <span style={{ fontSize: '13px', color: 'var(--c-text)' }}>{p.title}</span>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
-                        <DiffBadge diff={p.difficulty} />
-                        <span style={{ fontSize: '11px', color: 'var(--c-muted)' }}>~{p.estimatedWords}w</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+            <Field label="Your Color">
+              <ColorPicker />
             </Field>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -221,6 +157,10 @@ function MultiplayerView() {
               <label for="public-toggle" style={{ fontSize: '13px', color: 'var(--c-muted)', cursor: 'pointer' }}>
                 List this room publicly (anyone can browse and join)
               </label>
+            </div>
+
+            <div style={{ padding: '12px 16px', background: 'var(--c-surface-alt)', borderRadius: 8, border: '1px solid var(--c-border)', fontSize: 13, color: 'var(--c-muted)', lineHeight: 1.6 }}>
+              <strong style={{ color: 'var(--c-text)' }}>Survival Mode</strong> — Words fall from the sky. Type them before they hit the bottom. Miss 5 and you're out. Last player standing wins!
             </div>
 
             <button onClick={handleCreate} disabled={connecting} class="arena-btn-primary">
@@ -258,6 +198,10 @@ function MultiplayerView() {
               />
             </Field>
 
+            <Field label="Your Color">
+              <ColorPicker />
+            </Field>
+
             <button onClick={handleJoin} disabled={connecting} class="arena-btn-primary">
               {connecting ? 'Joining…' : '🔑 Join Room'}
             </button>
@@ -282,11 +226,11 @@ function MultiplayerView() {
                 }}
               >
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--c-text)' }}>{r.promptTitle}</div>
+                  <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--c-text)' }}>
+                    {r.hostName}'s room
+                  </div>
                   <div style={{ fontSize: '12px', color: 'var(--c-muted)', marginTop: '3px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <span>Host: {r.hostName}</span>
-                    <span>{r.playerCount}/{r.maxPlayers} players</span>
-                    <DiffBadge diff={r.difficulty} />
+                    <span>{r.playerCount} players</span>
                     <span style={{
                       padding: '1px 6px', borderRadius: '8px', fontSize: '10px', fontWeight: 700,
                       background: r.status === 'playing' ? '#7c3aed22' : '#16a34a22',
@@ -318,16 +262,10 @@ export function HomeView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      {/* Top-level tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--c-border)', padding: '0 20px', flexShrink: 0, background: 'var(--c-surface)' }}>
-        <button style={tabStyle(current === 'solo')} onClick={() => { homeTab.value = 'solo'; }}>
-          ⚡ Solo Practice
-        </button>
-        <button style={tabStyle(current === 'multi')} onClick={() => { homeTab.value = 'multi'; }}>
-          ⚔️ Multiplayer
-        </button>
+        <button style={tabStyle(current === 'solo')}  onClick={() => { homeTab.value = 'solo'; }}>⚡ Solo Practice</button>
+        <button style={tabStyle(current === 'multi')} onClick={() => { homeTab.value = 'multi'; }}>⚔️ Multiplayer</button>
       </div>
-
       <div style={{ flex: 1, overflow: 'hidden', minHeight: 0, position: 'relative' }}>
         {current === 'solo'  && <SoloPracticeView />}
         {current === 'multi' && <MultiplayerView />}

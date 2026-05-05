@@ -217,14 +217,6 @@ export function setPlayerColor(color: string) {
 
 // ─── Daily Challenge ──────────────────────────────────────────────────
 
-import { ARENA_PROMPTS } from '@/lib/arena-prompts';
-
 export function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
-}
-
-export function getDailyPrompt() {
-  const dateNum = parseInt(todayStr().replace(/-/g, ''), 10);
-  const idx = dateNum % ARENA_PROMPTS.length;
-  return ARENA_PROMPTS[idx];
 }

@@ -40,7 +40,7 @@ export function BattleLayout() {
             {view === 'lobby'     && <LobbyView />}
             {view === 'countdown' && <CountdownView />}
             {view === 'game'      && <GameView />}
-            {view === 'results'   && <ResultsView onClose={handleBack} />}
+            {view === 'results'   && <ResultsView />}
         </div>
     );
 }
