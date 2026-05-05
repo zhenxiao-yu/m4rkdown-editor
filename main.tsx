@@ -1,5 +1,6 @@
-import { render } from 'preact';
+import { render, h } from 'preact';
 import { App } from './src/app';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import './src/styles/main.css';
 import './src/styles/arena.css';
 import { inject as injectAnalytics } from '@vercel/analytics';
@@ -27,4 +28,4 @@ if (sharedContent) {
 import { disconnectFromCollab } from './src/lib/partykit-client';
 window.addEventListener('beforeunload', disconnectFromCollab);
 
-render(<App />, document.getElementById('app')!);
+render(<ErrorBoundary><App /></ErrorBoundary>, document.getElementById('app')!);

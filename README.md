@@ -1,222 +1,76 @@
-# M4rkdown (MD Parser)
+# M4rkdown
 
-A lightweight and modular Markdown parser built with JavaScript/TypeScript, designed to tokenize and render Markdown syntax into structured tokens or HTML. This parser is flexible and extensible, enabling support for additional Markdown features with minimal effort.
+**Fast, offline-first Markdown editor** with real-time collaboration and a competitive typing arena.
 
-------
+🌐 **[m4rkdown.is-a.dev](https://m4rkdown.is-a.dev)**
+
+---
 
 ## Features
 
-- **Heading Parsing**: Supports Markdown headings (`#`, `##`, ..., `######`).
+- **Editor** — CodeMirror 6, syntax highlighting, vim mode, split / editor / preview layouts, zen fullscreen mode
+- **Formatting toolbar** — bold, italic, code, headings (H1–H3), lists, blockquotes with keyboard shortcuts
+- **Document tabs** — multiple docs, localStorage persistence, document templates
+- **Real-time collab** — share a URL and co-edit with live presence indicators via PartyKit WebSockets
+- **Typing Arena** — survival word game, solo practice, multiplayer rooms, XP / leveling system, achievements
+- **PWA** — installable, fully offline-capable via service worker
+- **Export** — copy as HTML, download as `.md`
 
-- **List Parsing**: Handles unordered (`-`, `+`) and ordered (`1.`, `2.`) lists, including nested lists.
+## Tech stack
 
-- Inline Parsing
+| Layer | Technology |
+|-------|-----------|
+| UI | Preact 10 + @preact/signals |
+| Editor | CodeMirror 6 |
+| Markdown | markdown-it + KaTeX, Mermaid, highlight.js plugins |
+| Realtime | PartyKit (WebSockets) |
+| Build | Vite 5 + TypeScript 6 |
+| PWA | vite-plugin-pwa + Workbox |
+| Hosting | Vercel (edge functions, analytics, speed insights) |
 
-  :
-
-    - Emphasis (`*italic*`, `_italic_`)
-    - Bold (`**bold**`, `__bold__`)
-    - Links (`[text](url)`)
-
-- **Token-Based Design**: Converts Markdown input into tokens for further processing or rendering.
-
-- **Extensibility**: Easily add custom rules for additional Markdown features.
-
-------
-
-## Table of Contents
-
-1. [Installation](https://chatgpt.com/c/67428cc5-6090-8013-bb5b-3c7a84d84061#installation)
-2. [Usage](https://chatgpt.com/c/67428cc5-6090-8013-bb5b-3c7a84d84061#usage)
-3. [Code Overview](https://chatgpt.com/c/67428cc5-6090-8013-bb5b-3c7a84d84061#code-overview)
-4. [Examples](https://chatgpt.com/c/67428cc5-6090-8013-bb5b-3c7a84d84061#examples)
-5. [Contributing](https://chatgpt.com/c/67428cc5-6090-8013-bb5b-3c7a84d84061#contributing)
-6. [License](https://chatgpt.com/c/67428cc5-6090-8013-bb5b-3c7a84d84061#license)
-
-------
-
-## Installation
+## Local development
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/markdown-parser.git
-
-# Navigate into the project directory
-cd markdown-parser
-
-# Install dependencies
 npm install
+
+# Editor only
+npm run dev           # http://localhost:5173
+
+# Arena / collab server (needed for multiplayer)
+npm run arena:dev     # http://localhost:1999
+
+# Type check
+npm run typecheck
+
+# Tests
+npm test
 ```
 
-------
+## Deploy
 
-## Usage
+Push to `main` — the GitHub Actions workflow:
+1. Type-checks and runs tests
+2. Pulls Vercel env vars and builds once with `vercel build --prod`
+3. Deploys the prebuilt output to Vercel, GitHub Pages, and PartyKit in parallel
 
-To use the parser in your project:
+Required GitHub secrets: `VERCEL_TOKEN`, `PARTYKIT_TOKEN`.
 
-### Input Markdown String
+## Project structure
 
-```typescript
-import Markdown from "@/core/markdown";
-
-const markdown = new Markdown(`# Hello World\nThis is a *Markdown* parser.`);
-
-// Get syntax tree (tokens)
-console.log(markdown.getSyntaxTree());
-
-// Get rendered HTML
-console.log(markdown.getHtml());
+```
+src/
+  app.tsx              # Root — routes between menu / editor / arena
+  components/          # AppLayout, BattleLayout, arena views, toolbar, etc.
+  store/               # Global signals (documents, layout, settings, arena stats)
+  lib/                 # CodeMirror commands, game engine, PartyKit client, SFX
+  styles/              # main.css (editor) + arena.css (battle mode)
+party/
+  index.ts             # PartyKit survival-game server
+  collab.ts            # PartyKit collab presence server
+api/
+  og.tsx               # Vercel Edge Function — OG social card image
 ```
 
-### Output Example
+## License
 
-**Input Markdown:**
-
-```markdown
-# Hello World
-This is a *Markdown* parser.
-```
-
-**Generated Tokens:**
-
-```json
-[
-  {
-    "type": "heading_open",
-    "tag": "h1",
-    "nesting": 1,
-    "content": "",
-    "children": []
-  },
-  {
-    "type": "text",
-    "tag": "",
-    "nesting": 0,
-    "content": "Hello World",
-    "children": []
-  },
-  {
-    "type": "heading_close",
-    "tag": "h1",
-    "nesting": -1,
-    "content": "",
-    "children": []
-  },
-  {
-    "type": "text",
-    "tag": "",
-    "nesting": 0,
-    "content": "This is a ",
-    "children": []
-  },
-  {
-    "type": "em_open",
-    "tag": "em",
-    "nesting": 1,
-    "content": "",
-    "children": []
-  },
-  {
-    "type": "text",
-    "tag": "",
-    "nesting": 0,
-    "content": "Markdown",
-    "children": []
-  },
-  {
-    "type": "em_close",
-    "tag": "em",
-    "nesting": -1,
-    "content": "",
-    "children": []
-  },
-  {
-    "type": "text",
-    "tag": "",
-    "nesting": 0,
-    "content": " parser.",
-    "children": []
-  }
-]
-```
-
-**Generated HTML:**
-
-```html
-<h1>Hello World</h1>
-<p>This is a <em>Markdown</em> parser.</p>
-```
-
-------
-
-## Code Overview
-
-### Core Components
-
-1. **Tokenizer**:
-    - `Block` and `InlineBlock` classes handle parsing text into tokens.
-    - Converts Markdown into a structured representation.
-2. **Parsing Rules**:
-    - `parseHeading`: Parses Markdown headings (`# Heading`).
-    - `parseList`: Parses ordered/unordered lists and handles nesting.
-    - `parseInlineBlock`: Handles inline elements like emphasis, links, and plain text.
-3. **Rendering**:
-    - Tokens are rendered into HTML using the `render` function.
-
-------
-
-## Examples
-
-### Heading Parsing
-
-Input:
-
-```markdown
-## This is a heading
-```
-
-Output:
-
-```html
-<h2>This is a heading</h2>
-```
-
-### List Parsing
-
-Input:
-
-```markdown
-- Item 1
-  - Nested Item 1.1
-- Item 2
-```
-
-Output:
-
-```html
-<ul>
-  <li>Item 1
-    <ul>
-      <li>Nested Item 1.1</li>
-    </ul>
-  </li>
-  <li>Item 2</li>
-</ul>
-```
-
-------
-
-## Contributing
-
-We welcome contributions! To get started:
-
-1. Fork the repository.
-2. Create a new branch (`feature/your-feature`).
-3. Commit your changes (`git commit -m 'Add some feature'`).
-4. Push to the branch (`git push origin feature/your-feature`).
-5. Open a pull request.
-
-Please ensure your code adheres to the existing style and includes relevant tests.
-
-
-
+MIT
