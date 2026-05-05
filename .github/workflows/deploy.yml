@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy
 
 on:
   push:
@@ -15,6 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # ── Shared build ──────────────────────────────────────────────────────
   build:
     runs-on: ubuntu-latest
     steps:
@@ -36,17 +37,18 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Build
+      - name: Build (Vercel target)
         run: npm run build
         env:
-          VITE_BASE_PATH: /m4rkdown-editor/
+          VITE_PARTYKIT_HOST: m4rkdown-arena.partykit.dev
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
-  deploy:
+  # ── GitHub Pages ─────────────────────────────────────────────────────
+  deploy-pages:
     needs: build
     runs-on: ubuntu-latest
     environment:
@@ -56,3 +58,51 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # ── Vercel ───────────────────────────────────────────────────────────
+  deploy-vercel:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://m4rkdown-editor.vercel.app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy to Vercel
+        run: npx vercel --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: team_N854M53gDdl6HNscNxNMTcmS
+          VERCEL_PROJECT_ID: prj_MfXHjEwE3OilT3d6vpqc53HZaxxh
+
+  # ── PartyKit ─────────────────────────────────────────────────────────
+  deploy-partykit:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy PartyKit server
+        run: npx partykit deploy
+        env:
+          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}

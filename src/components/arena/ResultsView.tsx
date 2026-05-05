@@ -159,22 +159,24 @@ export function ResultsView() {
       {/* Full leaderboard */}
       {ranked.length > 0 && (
         <div style={{ border: '1px solid var(--c-border)', borderRadius: '10px', overflow: 'hidden', marginBottom: '20px' }}>
-          <div style={{
-            padding: '10px 16px', background: 'var(--c-surface-alt)',
-            fontSize: '11px', fontWeight: 700, color: 'var(--c-muted)',
-            textTransform: 'uppercase', letterSpacing: '0.06em',
-            display: 'grid', gridTemplateColumns: '40px 1fr 60px 70px 80px',
-          }}>
+          <div
+            class="leaderboard-grid-header"
+            style={{
+              padding: '10px 16px', background: 'var(--c-surface-alt)',
+              fontSize: '11px', fontWeight: 700, color: 'var(--c-muted)',
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              display: 'grid', gridTemplateColumns: '40px 1fr 60px 70px 80px',
+            }}>
             <span>#</span>
             <span>Player</span>
-            <span style={{ textAlign: 'center' }}>HP</span>
+            <span class="leaderboard-hp-col" style={{ textAlign: 'center' }}>HP</span>
             <span style={{ textAlign: 'right' }}>Words</span>
             <span style={{ textAlign: 'right' }}>Score</span>
           </div>
           {ranked.map((p, idx) => (
             <div
               key={p.id}
-              class="leaderboard-row"
+              class="leaderboard-row leaderboard-grid-row"
               style={{
                 padding: '10px 16px',
                 borderTop: '1px solid var(--c-border)',
@@ -197,7 +199,7 @@ export function ResultsView() {
                   {p.id === survivorId && <span style={{ marginLeft: 4 }}>👑</span>}
                 </span>
               </div>
-              <div style={{ textAlign: 'center' }}>
+              <div class="leaderboard-hp-col" style={{ textAlign: 'center' }}>
                 {Array.from({ length: 5 }).map((_, i) => (
                   <span key={i} style={{ fontSize: '10px', opacity: i < p.hp ? 1 : 0.2 }}>♥</span>
                 ))}

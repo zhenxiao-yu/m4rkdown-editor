@@ -794,50 +794,75 @@ body {
   font-size: 15px;
   font-weight: 600;
   color: var(--c-text);
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 6px;
   background: var(--c-surface-alt);
   border: 1px solid var(--c-border);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   will-change: transform;
-  transition: color 0.15s;
+  transition: color 0.12s, box-shadow 0.12s, background 0.12s, border-color 0.12s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 
 .arena-word--urgent-1 {
   color: #f59e0b;
-  border-color: #f59e0b44;
-  background: #f59e0b0a;
+  border-color: #f59e0b55;
+  background: #f59e0b10;
+  box-shadow: 0 0 6px #f59e0b33;
 }
 
 .arena-word--urgent-2 {
   color: #ef4444;
-  border-color: #ef444444;
-  background: #ef44440a;
+  border-color: #ef444466;
+  background: #ef444414;
+  box-shadow: 0 0 10px #ef444444;
+  animation: word-danger-pulse 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes word-danger-pulse {
+  from { box-shadow: 0 0 6px #ef444433; }
+  to   { box-shadow: 0 0 14px #ef4444aa; }
 }
 
 .arena-word--mine {
   border-color: var(--c-accent);
-  background: var(--c-accent)18;
-  box-shadow: 0 0 8px var(--c-accent)44;
+  background: color-mix(in srgb, var(--c-accent) 12%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--c-accent) 35%, transparent);
 }
 
 .arena-word--theirs {
-  opacity: 0.55;
+  opacity: 0.5;
+  box-shadow: none;
 }
 
 .arena-word .typed-prefix {
   color: var(--game-correct, #22c55e);
+  text-shadow: 0 0 6px #22c55e66;
 }
 
 @keyframes word-destroy {
-  0%   { opacity: 1; transform: scale(1.15); filter: brightness(1.6); }
-  60%  { opacity: 0.6; transform: scale(1.3); }
-  100% { opacity: 0; transform: scale(0.4); filter: brightness(2); }
+  0%   { opacity: 1; transform: scale(1.2);  filter: brightness(2) saturate(1.5); }
+  40%  { opacity: 0.8; transform: scale(1.35); }
+  100% { opacity: 0; transform: scale(0.3);  filter: brightness(3) saturate(2); }
 }
 
 .arena-word--destroy {
-  animation: word-destroy 0.35s ease-out forwards;
+  animation: word-destroy 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   pointer-events: none;
+}
+
+@keyframes hp-shake {
+  0%,100% { transform: translateX(0); }
+  15%     { transform: translateX(-5px); }
+  30%     { transform: translateX(5px); }
+  45%     { transform: translateX(-4px); }
+  60%     { transform: translateX(4px); }
+  75%     { transform: translateX(-2px); }
+  90%     { transform: translateX(2px); }
+}
+
+.arena-hp-row--shake {
+  animation: hp-shake 0.4s ease both;
 }
 
 /* ── HUD — top strip ─────────────────────────────────────────────── */
@@ -1021,35 +1046,6 @@ body {
   color: var(--c-muted);
 }
 
-/* ── CountdownView ring animation ────────────────────────────────── */
-
-@keyframes ring-shrink {
-  from { stroke-dashoffset: 0; }
-  to   { stroke-dashoffset: 283; }
-}
-
-/* ── Leaderboard row entrance ────────────────────────────────────── */
-
-@keyframes row-slide-in {
-  from { opacity: 0; transform: translateX(-14px); }
-  to   { opacity: 1; transform: none; }
-}
-
-.leaderboard-row {
-  animation: row-slide-in 0.3s ease both;
-}
-
-/* ── Podium entrance ─────────────────────────────────────────────── */
-
-@keyframes podium-rise {
-  from { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
-  to   { transform: scaleY(1); opacity: 1; }
-}
-
-.podium-bar {
-  animation: podium-rise 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
 /* ── Confetti ────────────────────────────────────────────────────── */
 
 @keyframes confetti-fall {
@@ -1149,4 +1145,11 @@ body {
   .arena-bottom-bar { padding: 8px 10px; gap: 8px; }
   .arena-word-input { font-size: 14px; padding: 7px 10px; }
   .arena-opponents { display: none; }
+
+  /* ResultsView leaderboard: hide HP column on small screens */
+  .leaderboard-grid-header,
+  .leaderboard-grid-row {
+    grid-template-columns: 36px 1fr 60px 70px !important;
+  }
+  .leaderboard-hp-col { display: none; }
 }

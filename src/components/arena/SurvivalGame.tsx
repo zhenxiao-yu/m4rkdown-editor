@@ -16,9 +16,11 @@ const hudScore = signal(0);
 const hudWave  = signal(1);
 
 export function SurvivalGame() {
-  const fieldRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const rafRef   = useRef<number>(0);
+  const fieldRef  = useRef<HTMLDivElement>(null);
+  const inputRef  = useRef<HTMLInputElement>(null);
+  const hpRowRef  = useRef<HTMLDivElement>(null);
+  const rafRef    = useRef<number>(0);
+  const prevHpRef = useRef(5);
 
   const wordElsRef        = useRef<Map<string, HTMLDivElement>>(new Map());
   const targetIdRef       = useRef<string | null>(null);
@@ -45,6 +47,11 @@ export function SurvivalGame() {
     wordElsRef.current = els;
 
     inputRef.current?.focus();
+
+    function onVisibility() {
+      if (!document.hidden) inputRef.current?.focus();
+    }
+    document.addEventListener('visibilitychange', onVisibility);
 
     let prevWave = 1;
 
@@ -153,6 +160,7 @@ export function SurvivalGame() {
 
     return () => {
       cancelAnimationFrame(rafRef.current);
+      document.removeEventListener('visibilitychange', onVisibility);
       els.forEach(el => el.remove());
       wordElsRef.current    = new Map();
       localMissedRef.current   = new Set();
@@ -239,6 +247,20 @@ export function SurvivalGame() {
   const alive      = myPlayer?.alive ?? true;
   const myHp       = myPlayer?.hp ?? 5;
 
+  // Shake HP row on HP loss
+  useEffect(() => {
+    if (myHp < prevHpRef.current) {
+      const row = hpRowRef.current;
+      if (row) {
+        row.classList.remove('arena-hp-row--shake');
+        void row.offsetWidth;
+        row.classList.add('arena-hp-row--shake');
+        setTimeout(() => row.classList.remove('arena-hp-row--shake'), 450);
+      }
+    }
+    prevHpRef.current = myHp;
+  }, [myHp]);
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--c-bg)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
@@ -268,7 +290,7 @@ export function SurvivalGame() {
 
       {/* Bottom bar: HP + input + opponents */}
       <div class="arena-bottom-bar">
-        <div class="arena-hp-row">
+        <div ref={hpRowRef} class="arena-hp-row">
           {Array.from({ length: 5 }).map((_, i) => (
             <span key={i} class={`arena-hp-heart${i >= myHp ? ' arena-hp-heart--lost' : ''}`}>♥</span>
           ))}

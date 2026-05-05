@@ -10,6 +10,45 @@
     position: absolute; top: 16px; left: 16px; z-index: 10;
 }
 
+/* ── Lobby two-column layout ─────────────────────────────────────── */
+.lobby-layout {
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+}
+
+.lobby-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--c-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.lobby-content {
+    flex: 1;
+    overflow: auto;
+    padding: 28px 32px;
+}
+
+@media (max-width: 640px) {
+    .lobby-layout {
+        flex-direction: column;
+        overflow: auto;
+    }
+    .lobby-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--c-border);
+        max-height: 55vh;
+    }
+    .lobby-content {
+        padding: 16px;
+        flex: none;
+    }
+}
+
 /* ── Game juice keyframes ────────────────────────────────────────── */
 
 /* Error shake — brief horizontal jitter on wrong character */
@@ -81,10 +120,10 @@
     animation: progress-shimmer 1.5s linear infinite;
 }
 
-/* Countdown ring */
+/* Countdown ring — circumference = 2π × 70 ≈ 440 */
 @keyframes ring-shrink {
     from { stroke-dashoffset: 0; }
-    to   { stroke-dashoffset: 283; }
+    to   { stroke-dashoffset: 440; }
 }
 .countdown-ring-circle { animation: ring-shrink 1s linear forwards; }
 

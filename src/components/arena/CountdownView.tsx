@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import { arenaCountdownT, tickCountdown } from '@/store/arena';
 
 const BG_COLORS = ['', '#dc2626', '#d97706', '#16a34a'];  // index = countdown number
-const RING_CIRCUMFERENCE = 283; // 2π × 45 ≈ 283
+const RING_CIRCUMFERENCE = 440; // 2π × 70 ≈ 440
 
 export function CountdownView() {
   const rafRef = useRef<number>(0);

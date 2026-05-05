@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "env": {
+    "VITE_PARTYKIT_HOST": "m4rkdown-arena.partykit.dev"
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

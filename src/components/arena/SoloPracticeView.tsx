@@ -91,17 +91,35 @@ function CountdownScreen() {
   const count = soloCountdown.value;
 
   useEffect(() => {
-    const t = setInterval(() => {
-      const next = soloCountdown.value - 1;
-      if (next <= 0) {
+    let t: ReturnType<typeof setInterval>;
+
+    function startInterval() {
+      t = setInterval(() => {
+        const next = soloCountdown.value - 1;
+        if (next <= 0) {
+          clearInterval(t);
+          soloStartedAt.value = Date.now();
+          soloState.value = 'playing';
+        } else {
+          soloCountdown.value = next;
+        }
+      }, 1000);
+    }
+
+    function onVisibility() {
+      if (document.hidden) {
         clearInterval(t);
-        soloStartedAt.value = Date.now();
-        soloState.value = 'playing';
       } else {
-        soloCountdown.value = next;
+        startInterval();
       }
-    }, 1000);
-    return () => clearInterval(t);
+    }
+
+    startInterval();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
 
   const countColor = count === 3 ? '#dc2626' : count === 2 ? '#d97706' : '#16a34a';
@@ -129,9 +147,11 @@ const soloHudCombo = signal(0);
 const soloHudScore = signal(0);
 
 function GameScreen() {
-  const fieldRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const rafRef   = useRef<number>(0);
+  const fieldRef  = useRef<HTMLDivElement>(null);
+  const inputRef  = useRef<HTMLInputElement>(null);
+  const hpRowRef  = useRef<HTMLDivElement>(null);
+  const rafRef    = useRef<number>(0);
+  const prevHpRef = useRef(5);
 
   const wordElsRef        = useRef<Map<string, HTMLDivElement>>(new Map());
   const targetIdRef       = useRef<string | null>(null);
@@ -172,6 +192,23 @@ function GameScreen() {
     let prevWave = 1;
     const localMissed    = localMissedRef.current;
     const localDestroyed = localDestroyedRef.current;
+
+    // Pause/resume when tab is hidden — freeze startedAt offset
+    let pausedAt: number | null = null;
+    function onVisibility() {
+      if (document.hidden) {
+        cancelAnimationFrame(rafRef.current);
+        pausedAt = Date.now();
+      } else {
+        if (pausedAt !== null && soloStartedAt.value !== null) {
+          soloStartedAt.value = soloStartedAt.value + (Date.now() - pausedAt);
+          pausedAt = null;
+        }
+        inputRef.current?.focus();
+        rafRef.current = requestAnimationFrame(tick);
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility);
 
     function tick() {
       const startedAt = soloStartedAt.value;
@@ -270,6 +307,7 @@ function GameScreen() {
 
     return () => {
       cancelAnimationFrame(rafRef.current);
+      document.removeEventListener('visibilitychange', onVisibility);
       els.forEach(el => el.remove());
       wordElsRef.current    = new Map();
       localMissedRef.current   = new Set();
@@ -345,6 +383,20 @@ function GameScreen() {
   const combo = soloHudCombo.value;
   const score = soloHudScore.value;
 
+  // Shake HP row on HP loss
+  useEffect(() => {
+    if (hp < prevHpRef.current) {
+      const row = hpRowRef.current;
+      if (row) {
+        row.classList.remove('arena-hp-row--shake');
+        void row.offsetWidth;
+        row.classList.add('arena-hp-row--shake');
+        setTimeout(() => row.classList.remove('arena-hp-row--shake'), 450);
+      }
+    }
+    prevHpRef.current = hp;
+  }, [hp]);
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--c-bg)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
@@ -371,7 +423,7 @@ function GameScreen() {
       />
 
       <div class="arena-bottom-bar">
-        <div class="arena-hp-row">
+        <div ref={hpRowRef} class="arena-hp-row">
           {Array.from({ length: 5 }).map((_, i) => (
             <span key={i} class={`arena-hp-heart${i >= hp ? ' arena-hp-heart--lost' : ''}`}>♥</span>
           ))}
