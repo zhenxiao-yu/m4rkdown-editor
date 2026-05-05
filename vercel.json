@@ -3,7 +3,8 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "env": {
-    "VITE_PARTYKIT_HOST": "m4rkdown-arena.partykit.dev"
+    "VITE_PARTYKIT_HOST": "m4rkdown-arena.partykit.dev",
+    "VITE_SITE_URL": "https://m4rkdown.is-a.dev"
   },
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
   "headers": [

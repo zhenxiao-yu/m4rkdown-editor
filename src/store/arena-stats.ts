@@ -51,6 +51,7 @@ export const LEVELS = [
   { min: 8000, title: 'Racer',        color: '#ec4899' },
   { min: 12000,title: 'Ace Typist',   color: '#f7df4b' },
   { min: 18000,title: 'Legend',       color: '#a78bfa' },
+  { min: 30000,title: 'Masterful',    color: '#00d4ff' },
 ];
 
 export function getLevel(xp: number) {
@@ -59,14 +60,17 @@ export function getLevel(xp: number) {
   return level;
 }
 
-export function xpToNextLevel(xp: number): { current: number; needed: number; pct: number } {
+export function xpToNextLevel(xp: number): { current: number; needed: number; pct: number; isMax: boolean } {
   const idx = LEVELS.findIndex(l => xp < l.min);
-  if (idx === -1) return { current: xp - LEVELS[LEVELS.length - 1].min, needed: 9999, pct: 1 };
+  if (idx === -1) {
+    const cap = LEVELS[LEVELS.length - 1].min;
+    return { current: xp - cap, needed: 0, pct: 1, isMax: true };
+  }
   const prev = LEVELS[idx - 1]?.min ?? 0;
   const next = LEVELS[idx].min;
   const current = xp - prev;
   const needed  = next - prev;
-  return { current, needed, pct: Math.min(1, current / needed) };
+  return { current, needed, pct: Math.min(1, current / needed), isMax: false };
 }
 
 export function xpForGame(result: GameResult): number {
@@ -101,6 +105,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'level_5',      title: 'Wordsmith',        desc: 'Reach Wordsmith level.',                   icon: '✍️', check: s => s.totalXp >= 2200 },
   { id: 'legend',       title: 'Living Legend',    desc: 'Reach Legend level.',                      icon: '👑', check: s => s.totalXp >= 18000 },
   { id: 'beat_ghost',   title: 'Ghost Slayer',     desc: 'Beat your own personal best in solo mode.',icon: '👻', check: (_,r) => !!(r as GameResult & { beatGhost?: boolean })?.beatGhost },
+  { id: 'masterful',    title: 'Masterful',        desc: 'Reach the pinnacle — Masterful rank.',     icon: '🌟', check: s => s.totalXp >= 30000 },
 ];
 
 // ─── Storage ──────────────────────────────────────────────────────────

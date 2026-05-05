@@ -266,7 +266,7 @@ export function SurvivalGame() {
           spawnScoreFloat(el, field, pts);
         }
         sfxPop(comboRef.current);
-        if (comboRef.current >= 3 && comboRef.current % 1 === 0) sfxCombo(comboRef.current);
+        if (comboRef.current >= 3) sfxCombo(comboRef.current);
 
         sendMsg({ type: 'word_done', wordId: target.id, combo: comboRef.current });
         targetIdRef.current = null;

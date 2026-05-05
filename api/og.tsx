@@ -72,7 +72,7 @@ export default function handler() {
             fontSize: 20, color: MUTED, letterSpacing: '0.04em',
           }}
         >
-          m4rkdown-editor.vercel.app
+          m4rkdown.is-a.dev
         </div>
       </div>
     ),

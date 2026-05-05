@@ -292,8 +292,8 @@ function PlayerProfileCard() {
           <div class="player-xp-bar-track" style={{ flex: 1 }}>
             <div class="player-xp-bar-fill" style={{ width: `${xpInfo.pct * 100}%`, background: level.color }} />
           </div>
-          <span style={{ fontSize: 10, color: 'var(--c-muted)', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)' }}>
-            {xpInfo.current}/{xpInfo.needed} XP
+          <span style={{ fontSize: 10, color: xpInfo.isMax ? level.color : 'var(--c-muted)', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontWeight: xpInfo.isMax ? 700 : 400 }}>
+            {xpInfo.isMax ? '✦ MAX RANK' : `${xpInfo.current}/${xpInfo.needed} XP`}
           </span>
         </div>
       </div>
