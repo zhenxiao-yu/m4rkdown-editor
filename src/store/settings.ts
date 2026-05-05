@@ -25,6 +25,7 @@ export const zenMode = signal<boolean>(false); // never persisted — always sta
 export const wordGoal = signal<number>(parseInt(localStorage.getItem('wg') ?? '0', 10) || 0);
 export const vimMode = signal<boolean>(localStorage.getItem('m4rkdown_vim') === 'true');
 export const vimModeLabel = signal<string>('');
+export const isOffline = signal<boolean>(typeof navigator !== 'undefined' ? !navigator.onLine : false);
 
 export function toggleFocusMode() { focusMode.value = !focusMode.value; save(); }
 export function toggleTypewriterMode() { typewriterMode.value = !typewriterMode.value; save(); }

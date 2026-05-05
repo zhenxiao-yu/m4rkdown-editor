@@ -1,24 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx vitest *)",
-      "Bash(node -e \"const m = require\\('./node_modules/markdown-it-emoji/index.mjs'\\); console.log\\(Object.keys\\(m\\)\\)\")",
-      "Bash(node --input-type=module -e \"import * as m from './node_modules/markdown-it-emoji/index.mjs'; console.log\\(Object.keys\\(m\\)\\)\")",
-      "Bash(node --input-type=module -e \"import * as m from './node_modules/markdown-it-footnote/index.mjs'; console.log\\(Object.keys\\(m\\)\\)\")",
-      "Bash(node --input-type=module -e \"import * as m from './node_modules/markdown-it-container/index.mjs'; console.log\\(Object.keys\\(m\\)\\)\")",
-      "Bash(node --input-type=module -e \"import * as m from './node_modules/markdown-it-texmath/markdown-it-texmath.mjs'; console.log\\(Object.keys\\(m\\)\\)\")",
-      "Bash(node --input-type=module -e \"import * as m from 'markdown-it-texmath'; console.log\\(Object.keys\\(m\\)\\)\")",
-      "Bash(git commit -m ' *)",
-      "WebFetch(domain:typora.io)",
-      "WebFetch(domain:obsidian.md)",
-      "WebFetch(domain:ia.net)",
-      "WebFetch(domain:bear.app)",
-      "WebFetch(domain:notion.so)",
-      "WebFetch(domain:www.notion.com)",
-      "WebFetch(domain:hackmd.io)",
-      "WebFetch(domain:stackedit.io)",
-      "WebFetch(domain:zettlr.com)",
-      "WebFetch(domain:inkdrop.app)"
+      "Bash(npx tsc --noEmit*)",
+      "Bash(npx vite build*)",
+      "Bash(npx vite*)",
+      "Bash(npx vitest*)",
+      "Bash(npx partykit*)",
+      "Bash(npm install*)",
+      "Bash(npm run*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push*)",
+      "Bash(node -e ' *)",
+      "Bash(node --input-type=module -e ' *)"
     ]
   }
 }

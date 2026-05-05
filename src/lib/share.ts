@@ -30,3 +30,12 @@ export function readShareHash(): string | null {
 export function clearShareHash(): void {
     history.replaceState(null, '', window.location.pathname);
 }
+
+// Derive a stable collab room ID from a share URL so all openers land in the same room.
+export function collabRoomIdFromUrl(url: string): string | null {
+    try {
+        const hash = new URL(url).hash;
+        if (!hash.startsWith(HASH_PREFIX)) return null;
+        return 'share-' + hash.slice(HASH_PREFIX.length, HASH_PREFIX.length + 40);
+    } catch { return null; }
+}

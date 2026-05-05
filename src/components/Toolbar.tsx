@@ -1,11 +1,12 @@
 import { EditorView } from '@codemirror/view';
 import { openSearchPanel } from '@codemirror/search';
-import { Link, Search, Focus, AlignCenter, PanelRight, Code, FileCode, Table, Minus, List, ListOrdered, TextQuote } from 'lucide-react';
+import { Link, Search, Focus, AlignCenter, PanelRight, Code, FileCode, Table, Minus, List, ListOrdered, TextQuote, Undo2, Redo2 } from 'lucide-react';
 import {
     boldCommand, italicCommand, strikethroughCommand,
     inlineCodeCommand, linkCommand, codeBlockCommand, tableCommand, hrCommand,
     heading1Command, heading2Command, heading3Command,
     bulletListCommand, orderedListCommand, blockquoteCommand,
+    undoCommand, redoCommand, indentMoreCommand, indentLessCommand,
 } from '@/lib/codemirror-commands';
 import { focusMode, typewriterMode, showOutline, toggleFocusMode, toggleTypewriterMode, toggleOutline, vimMode, toggleVimMode } from '@/store/settings';
 
@@ -119,6 +120,21 @@ export function Toolbar({ getView }: ToolbarProps) {
                 style={{ padding: '4px 8px' }}
             >
                 <Search size={14} strokeWidth={2} />
+            </button>
+
+            <div style={{ width: '1px', height: '18px', backgroundColor: 'var(--c-border)', margin: '0 4px', flexShrink: 0 }} />
+
+            <button class="toolbar-btn" data-tooltip="Undo" data-tooltip-shortcut="Ctrl+Z" aria-label="Undo" onClick={() => run(undoCommand)} style={{ padding: '4px 8px' }}>
+                <Undo2 size={14} strokeWidth={2} />
+            </button>
+            <button class="toolbar-btn" data-tooltip="Redo" data-tooltip-shortcut="Ctrl+Y" aria-label="Redo" onClick={() => run(redoCommand)} style={{ padding: '4px 8px' }}>
+                <Redo2 size={14} strokeWidth={2} />
+            </button>
+            <button class="toolbar-btn" data-tooltip="Indent" data-tooltip-shortcut="Tab" aria-label="Indent" onClick={() => run(indentMoreCommand)} style={{ padding: '4px 8px', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>
+                ⇥
+            </button>
+            <button class="toolbar-btn" data-tooltip="Outdent" data-tooltip-shortcut="Shift+Tab" aria-label="Outdent" onClick={() => run(indentLessCommand)} style={{ padding: '4px 8px', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>
+                ⇤
             </button>
 
             <div style={{ width: '1px', height: '18px', backgroundColor: 'var(--c-border)', margin: '0 4px', flexShrink: 0 }} />

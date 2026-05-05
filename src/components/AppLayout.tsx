@@ -15,7 +15,8 @@ import { CommandPalette } from './CommandPalette';
 import { ToastStack } from './Toast';
 import { TemplateModal } from './TemplateModal';
 import { activeDoc } from '@/store/documents';
-import { showOutline, zenMode, toggleZenMode } from '@/store/settings';
+import { showOutline, zenMode, toggleZenMode, isOffline } from '@/store/settings';
+import { showToast } from '@/store/toast';
 import { splitRatio, layoutMode, setLayoutMode, type LayoutMode } from '@/store/layout';
 import { openPalette, templateModalOpen, closeTemplateModal } from '@/store/commandPalette';
 import { enterBattleMode, returnToMenu } from '@/store/appMode';
@@ -52,6 +53,15 @@ export function AppLayout() {
         _swReg?.waiting?.postMessage({ type: 'SKIP_WAITING' });
         window.location.reload();
     }
+
+    // Online / offline indicator
+    useEffect(() => {
+        const onOffline = () => { isOffline.value = true; };
+        const onOnline  = () => { isOffline.value = false; showToast('Back online', 'success'); };
+        window.addEventListener('offline', onOffline);
+        window.addEventListener('online',  onOnline);
+        return () => { window.removeEventListener('offline', onOffline); window.removeEventListener('online', onOnline); };
+    }, []);
 
     // Global keyboard shortcuts + zen fullscreen sync
     useEffect(() => {

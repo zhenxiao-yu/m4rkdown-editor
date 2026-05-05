@@ -1,11 +1,14 @@
 import { useState } from 'preact/hooks';
 import { Share2, Check } from 'lucide-react';
 import { markdownSource } from '@/store/editor';
-import { buildShareUrl } from '@/lib/share';
+import { buildShareUrl, collabRoomIdFromUrl } from '@/lib/share';
 import { showToast } from '@/store/toast';
+import { connectToCollab } from '@/lib/partykit-client';
+import { collabConnected } from '@/store/collab';
 
 export function ShareButton() {
     const [copied, setCopied] = useState(false);
+    const isCollab = collabConnected.value;
 
     function handleShare() {
         const url = buildShareUrl(markdownSource.value);
@@ -13,9 +16,11 @@ export function ShareButton() {
             showToast('Document is too large to share via URL (max ~60KB).', 'error');
             return;
         }
+        const roomId = collabRoomIdFromUrl(url);
+        if (!isCollab && roomId) connectToCollab(roomId);
         navigator.clipboard.writeText(url).then(() => {
             setCopied(true);
-            showToast('Share URL copied!', 'success');
+            showToast('Share URL copied! Others can join your session.', 'success');
             setTimeout(() => setCopied(false), 2000);
         });
     }

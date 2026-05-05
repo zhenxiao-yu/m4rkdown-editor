@@ -1,6 +1,8 @@
-import { useState } from 'preact/hooks';
+import { useState, useRef, useEffect } from 'preact/hooks';
+import confetti from 'canvas-confetti';
 import { markdownSource } from '@/store/editor';
-import { focusMode, typewriterMode, wordGoal, setWordGoal, vimMode, vimModeLabel } from '@/store/settings';
+import { focusMode, typewriterMode, wordGoal, setWordGoal, vimMode, vimModeLabel, isOffline } from '@/store/settings';
+import { collabPeerCount, collabConnected } from '@/store/collab';
 
 function countSyllables(word: string): number {
     const w = word.toLowerCase().replace(/[^a-z]/g, '');
@@ -44,9 +46,21 @@ export function StatusBar() {
 
     const [showGoalInput, setShowGoalInput] = useState(false);
     const [goalDraft, setGoalDraft] = useState('');
+    const offline = isOffline.value;
+    const peersOnline = collabConnected.value ? collabPeerCount.value : 0;
 
     const pct = goal > 0 ? Math.min(100, Math.round((words / goal) * 100)) : 0;
     const goalMet = goal > 0 && words >= goal;
+
+    const lastMilestonePct = useRef<number>(pct);
+    useEffect(() => {
+        for (const m of [25, 50, 75, 100]) {
+            if (pct >= m && lastMilestonePct.current < m) {
+                confetti({ particleCount: m === 100 ? 120 : 40, spread: 70, origin: { x: 0.5, y: 0.9 } });
+            }
+        }
+        lastMilestonePct.current = pct;
+    }, [pct]);
 
     return (
         <div style={{ flexShrink: 0 }}>
@@ -121,6 +135,8 @@ export function StatusBar() {
                 )}
                 {isFocus && <Pill label="Focus" />}
                 {isTypewriter && <Pill label="Typewriter" />}
+                {offline && <Pill label="Offline" color="var(--c-danger)" />}
+                {peersOnline > 0 && <Pill label={`${peersOnline + 1} online`} color="var(--c-success)" />}
                 <span style={{ color: 'var(--c-border)' }}>M4rkdown v2.1</span>
             </div>
             {goal > 0 && (
@@ -140,10 +156,10 @@ function Sep() {
     return <span style={{ color: 'var(--c-border)' }}>·</span>;
 }
 
-function Pill({ label }: { label: string }) {
+function Pill({ label, color = 'var(--c-accent)' }: { label: string; color?: string }) {
     return (
         <span style={{
-            backgroundColor: 'var(--c-accent)',
+            backgroundColor: color,
             color: 'var(--c-accent-fg)',
             borderRadius: '4px',
             padding: '1px 6px',

@@ -1,5 +1,8 @@
 {
   "name": "m4rkdown-arena",
   "main": "party/index.ts",
+  "parties": {
+    "collab": "party/collab.ts"
+  },
   "compatibilityDate": "2024-01-01"
 }

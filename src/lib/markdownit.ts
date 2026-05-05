@@ -61,6 +61,29 @@ CALLOUT_TYPES.forEach((type) => {
     });
 });
 
+// Details container: ::: details Summary text
+md.use(container, 'details', {
+    render(tokens: { nesting: number; info: string }[], idx: number) {
+        if (tokens[idx].nesting === 1) {
+            const title = tokens[idx].info.trim().slice('details'.length).trim();
+            return `<details class="callout callout-details"><summary class="callout-summary">${md.utils.escapeHtml(title || 'Details')}</summary><div class="callout-body">\n`;
+        }
+        return '</div></details>\n';
+    },
+});
+
+// Spoiler container: ::: spoiler (blurred until hover)
+md.use(container, 'spoiler', {
+    render(tokens: { nesting: number; info: string }[], idx: number) {
+        if (tokens[idx].nesting === 1) {
+            const title = tokens[idx].info.trim().slice('spoiler'.length).trim();
+            const titleHtml = title ? `<div class="callout-title">${md.utils.escapeHtml(title)}</div>` : '';
+            return `<div class="callout callout-spoiler">${titleHtml}<div class="callout-body callout-spoiler__body">\n`;
+        }
+        return '</div></div>\n';
+    },
+});
+
 // ── Fence renderer (mermaid + language label) ─────────────────────────
 
 const defaultFence = md.renderer.rules.fence;
@@ -71,6 +94,14 @@ md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     if (lang === 'mermaid') {
         const encoded = encodeURIComponent(token.content);
         return `<div class="mermaid-pending" data-src="${encoded}"></div>\n`;
+    }
+
+    if (lang === 'json') {
+        try {
+            JSON.parse(token.content); // only use viewer for valid JSON
+            const encoded = encodeURIComponent(token.content.trim());
+            return `<div class="json-viewer-pending" data-json="${encoded}"></div>\n`;
+        } catch { /* fall through to default renderer */ }
     }
 
     const base = defaultFence

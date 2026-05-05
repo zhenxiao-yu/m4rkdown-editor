@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import autoAnimate from '@formkit/auto-animate';
 import { Search } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { paletteOpen, closePalette, openTemplateModal } from '@/store/commandPalette';
 import { toggleFocusMode, toggleTypewriterMode, toggleOutline, toggleZenMode, toggleVimMode } from '@/store/settings';
 import { toggleTheme } from '@/store/theme';
-import { createDoc } from '@/store/documents';
+import { createDoc, activeDoc, docList, setActiveDoc } from '@/store/documents';
 import { markdownSource, parsedHtml } from '@/store/editor';
-import { activeDoc } from '@/store/documents';
 import { exportMarkdown, exportHtml } from '@/lib/export';
 import { buildShareUrl } from '@/lib/share';
 import { showToast } from '@/store/toast';
+import { FileText } from 'lucide-react';
 
 interface PaletteAction {
     id: string;
@@ -159,6 +160,8 @@ const fuse = new Fuse(getActions(), {
     includeScore: true,
 });
 
+interface DocHit { id: string; title: string; snippet: string; }
+
 export function CommandPalette() {
     const isOpen = paletteOpen.value;
     const [query, setQuery] = useState('');
@@ -166,16 +169,39 @@ export function CommandPalette() {
     const inputRef = useRef<HTMLInputElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
 
+    const isDocSearch = query.startsWith('/');
+    const docTerm = isDocSearch ? query.slice(1) : '';
+
     const actions = getActions();
-    const results = query.trim()
-        ? fuse.search(query).map(r => r.item)
-        : actions;
+    const commandResults = isDocSearch ? [] : (query.trim() ? fuse.search(query).map(r => r.item) : actions);
+
+    const docResults: DocHit[] = isDocSearch ? (() => {
+        const docs = docList.value;
+        if (!docTerm.trim()) return docs.map(d => ({ id: d.id, title: d.title, snippet: '' }));
+        const docFuse = new Fuse(docs, {
+            keys: [{ name: 'title', weight: 0.5 }, { name: 'content', weight: 0.5 }],
+            threshold: 0.4,
+            includeMatches: true,
+        });
+        return docFuse.search(docTerm).map(r => {
+            const match = r.matches?.find(m => m.key === 'content');
+            let snippet = '';
+            if (match && match.indices[0]) {
+                const [start] = match.indices[0];
+                snippet = r.item.content.slice(Math.max(0, start - 15), start + 65).replace(/\n/g, ' ').trim();
+            }
+            return { id: r.item.id, title: r.item.title, snippet };
+        });
+    })() : [];
+
+    const totalResults = isDocSearch ? docResults.length : commandResults.length;
 
     useEffect(() => {
         if (isOpen) {
             setQuery('');
             setActiveIdx(0);
             setTimeout(() => inputRef.current?.focus(), 10);
+            if (listRef.current) autoAnimate(listRef.current, { duration: 100, easing: 'ease-out' });
         }
     }, [isOpen]);
 
@@ -184,13 +210,18 @@ export function CommandPalette() {
     function handleKeyDown(e: KeyboardEvent) {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
-            setActiveIdx(i => Math.min(i + 1, results.length - 1));
+            setActiveIdx(i => Math.min(i + 1, totalResults - 1));
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             setActiveIdx(i => Math.max(i - 1, 0));
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            results[activeIdx]?.run();
+            if (isDocSearch) {
+                const hit = docResults[activeIdx];
+                if (hit) { setActiveDoc(hit.id); closePalette(); }
+            } else {
+                commandResults[activeIdx]?.run();
+            }
         } else if (e.key === 'Escape') {
             closePalette();
         }
@@ -212,7 +243,7 @@ export function CommandPalette() {
                     <input
                         ref={inputRef}
                         class="cmd-input"
-                        placeholder="Type a command or search…"
+                        placeholder="Type a command… or / to search documents"
                         value={query}
                         onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
                         onKeyDown={handleKeyDown as unknown as (e: Event) => void}
@@ -222,10 +253,25 @@ export function CommandPalette() {
                     <span style={{ fontSize: '11px', color: 'var(--c-muted)', fontFamily: 'var(--font-mono)' }}>ESC</span>
                 </div>
                 <div class="cmd-list" ref={listRef} role="listbox">
-                    {results.length === 0 && (
-                        <div class="cmd-empty">No commands found for "{query}"</div>
+                    {totalResults === 0 && (
+                        <div class="cmd-empty">
+                            {isDocSearch ? `No documents match "${docTerm}"` : `No commands found for "${query}"`}
+                        </div>
                     )}
-                    {results.map((action, i) => (
+                    {isDocSearch ? docResults.map((hit, i) => (
+                        <div
+                            key={hit.id}
+                            class={`cmd-item${i === activeIdx ? ' cmd-item--active' : ''}`}
+                            role="option"
+                            aria-selected={i === activeIdx}
+                            onMouseEnter={() => setActiveIdx(i)}
+                            onClick={() => { setActiveDoc(hit.id); closePalette(); }}
+                        >
+                            <FileText size={13} style={{ flexShrink: 0, color: 'var(--c-muted)' }} />
+                            <span class="cmd-item__label" style={{ fontWeight: 600 }}>{hit.title}</span>
+                            {hit.snippet && <span class="cmd-item__category" style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{hit.snippet}</span>}
+                        </div>
+                    )) : commandResults.map((action, i) => (
                         <div
                             key={action.id}
                             class={`cmd-item${i === activeIdx ? ' cmd-item--active' : ''}`}

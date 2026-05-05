@@ -20,6 +20,7 @@ import {
     inlineCodeCommand, codeBlockCommand,
     heading1Command, heading2Command, heading3Command,
     bulletListCommand, orderedListCommand, blockquoteCommand,
+    moveLineUpCommand, moveLineDownCommand,
 } from '@/lib/codemirror-commands';
 
 // Compartments for hot-swappable extensions
@@ -70,6 +71,8 @@ export function EditorPane() {
                     { key: 'Ctrl-Shift-8', run: bulletListCommand },
                     { key: 'Ctrl-Shift-7', run: orderedListCommand },
                     { key: 'Ctrl-Shift-.', run: blockquoteCommand },
+                    { key: 'Alt-ArrowUp', run: moveLineUpCommand },
+                    { key: 'Alt-ArrowDown', run: moveLineDownCommand },
                 ]),
                 EditorView.updateListener.of((update) => {
                     if (update.docChanged) debouncedSave(update.state.doc.toString());

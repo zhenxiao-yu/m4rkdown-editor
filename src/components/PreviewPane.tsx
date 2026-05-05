@@ -1,18 +1,35 @@
 import '@/styles/preview.css';
 import 'highlight.js/styles/github-dark.css';
 import 'katex/dist/katex.min.css';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { useRef, useEffect, useState } from 'preact/hooks';
 import { effect } from '@preact/signals';
 import { parsedHtml, activeTab, markdownSource } from '@/store/editor';
 import { editorScrollFraction, layoutMode } from '@/store/layout';
+import { activeDocId, updateDocContent } from '@/store/documents';
 import { TabBar } from './TabBar';
 import { SyntaxTreeTab } from './SyntaxTreeTab';
 import { SourceCodeTab } from './SourceCodeTab';
 import { highlightCodeBlocks } from '@/lib/highlight';
 import { parseAsync } from '@/lib/worker-bridge';
 import matter from 'gray-matter';
+
+// ── JSON viewer lazy loader ───────────────────────────────────────────
+
+async function renderJsonBlocks(container: HTMLElement) {
+    const pending = Array.from(container.querySelectorAll<HTMLElement>('.json-viewer-pending'));
+    if (pending.length === 0) return;
+    // @ts-ignore — no types for json-viewer-js
+    await import('json-viewer-js');
+    for (const div of pending) {
+        const json = decodeURIComponent(div.getAttribute('data-json') || '');
+        const viewer = document.createElement('json-viewer') as HTMLElement;
+        viewer.setAttribute('data', json);
+        viewer.style.cssText = 'display:block;font-size:13px;font-family:var(--font-mono);';
+        div.replaceWith(viewer);
+    }
+}
 
 // ── Mermaid lazy loader ───────────────────────────────────────────────
 
@@ -37,30 +54,48 @@ async function renderMermaid(divs: HTMLElement[]) {
 
 // ── Frontmatter panel ─────────────────────────────────────────────────
 
-function FrontmatterPanel({ data }: { data: Record<string, unknown> }) {
+interface FrontmatterPanelProps {
+    data: Record<string, unknown>;
+    bodyContent: string;
+}
+
+function FrontmatterPanel({ data, bodyContent }: FrontmatterPanelProps) {
     const [open, setOpen] = useState(true);
+    const [editingKey, setEditingKey] = useState<string | null>(null);
+    const [editValue, setEditValue] = useState('');
+    const [newKey, setNewKey] = useState('');
+    const [newVal, setNewVal] = useState('');
+    const [addingRow, setAddingRow] = useState(false);
+
+    function commit(key: string, value: string) {
+        const updated = { ...data, [key]: value };
+        updateDocContent(activeDocId.value, matter.stringify(bodyContent, updated));
+        setEditingKey(null);
+    }
+
+    function commitNew() {
+        if (!newKey.trim()) { setAddingRow(false); return; }
+        const updated = { ...data, [newKey.trim()]: newVal };
+        updateDocContent(activeDocId.value, matter.stringify(bodyContent, updated));
+        setNewKey(''); setNewVal(''); setAddingRow(false);
+    }
+
+    const cellStyle = { padding: '2px 8px 2px 16px', color: 'var(--c-text)' };
+    const inputStyle = {
+        width: '100%', fontFamily: 'var(--font-mono)', fontSize: 12,
+        background: 'var(--c-btn)', border: '1px solid var(--c-accent)',
+        color: 'var(--c-text)', borderRadius: 3, padding: '1px 4px',
+    };
+
     return (
-        <div style={{
-            borderBottom: '1px solid var(--c-border)',
-            fontSize: '12px',
-            backgroundColor: 'var(--c-surface)',
-        }}>
+        <div style={{ borderBottom: '1px solid var(--c-border)', fontSize: '12px', backgroundColor: 'var(--c-surface)' }}>
             <button
                 onClick={() => setOpen(!open)}
                 style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    width: '100%',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '6px 16px',
-                    color: 'var(--c-muted)',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
+                    display: 'flex', alignItems: 'center', gap: '6px', width: '100%',
+                    background: 'none', border: 'none', cursor: 'pointer', padding: '6px 16px',
+                    color: 'var(--c-muted)', fontSize: '11px', fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.06em',
                 }}
             >
                 <ChevronRight size={13} style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }} />
@@ -71,12 +106,67 @@ function FrontmatterPanel({ data }: { data: Record<string, unknown> }) {
                     <tbody>
                         {Object.entries(data).map(([k, v]) => (
                             <tr key={k}>
-                                <td style={{ padding: '2px 16px 2px', color: 'var(--c-accent)', fontWeight: 600, whiteSpace: 'nowrap', width: 1 }}>{k}</td>
-                                <td style={{ padding: '2px 16px 2px', color: 'var(--c-text)' }}>{String(v)}</td>
+                                <td style={{ padding: '2px 8px 2px 16px', color: 'var(--c-accent)', fontWeight: 600, whiteSpace: 'nowrap', width: 1 }}>{k}</td>
+                                <td style={cellStyle}>
+                                    {editingKey === k ? (
+                                        <input
+                                            style={inputStyle}
+                                            value={editValue}
+                                            autoFocus
+                                            onInput={(e) => setEditValue((e.target as HTMLInputElement).value)}
+                                            onBlur={() => commit(k, editValue)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') commit(k, editValue);
+                                                if (e.key === 'Escape') setEditingKey(null);
+                                            }}
+                                        />
+                                    ) : (
+                                        <span
+                                            style={{ cursor: 'text', display: 'block', minWidth: 40 }}
+                                            onClick={() => { setEditingKey(k); setEditValue(String(v)); }}
+                                            title="Click to edit"
+                                        >
+                                            {String(v)}
+                                        </span>
+                                    )}
+                                </td>
                             </tr>
                         ))}
+                        {addingRow && (
+                            <tr>
+                                <td style={{ padding: '2px 8px 2px 16px', width: 1 }}>
+                                    <input
+                                        style={{ ...inputStyle, width: 80 }}
+                                        placeholder="key"
+                                        value={newKey}
+                                        autoFocus
+                                        onInput={(e) => setNewKey((e.target as HTMLInputElement).value)}
+                                        onKeyDown={(e) => { if (e.key === 'Tab') e.preventDefault(); if (e.key === 'Escape') setAddingRow(false); }}
+                                    />
+                                </td>
+                                <td style={cellStyle}>
+                                    <input
+                                        style={inputStyle}
+                                        placeholder="value"
+                                        value={newVal}
+                                        onInput={(e) => setNewVal((e.target as HTMLInputElement).value)}
+                                        onBlur={commitNew}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') commitNew(); if (e.key === 'Escape') setAddingRow(false); }}
+                                    />
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
+            )}
+            {open && (
+                <button
+                    onClick={() => setAddingRow(true)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, margin: '0 16px 8px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--c-muted)', fontSize: 11 }}
+                    title="Add frontmatter field"
+                >
+                    <Plus size={11} /> Add field
+                </button>
             )}
         </div>
     );
@@ -88,6 +178,7 @@ function RenderedPreview() {
     const containerRef = useRef<HTMLDivElement>(null);
     const [html, setHtml] = useState(() => parsedHtml.value);
     const [frontmatter, setFrontmatter] = useState<Record<string, unknown> | null>(null);
+    const [bodyContent, setBodyContent] = useState('');
 
     useEffect(() => {
         const stop = effect(() => {
@@ -104,12 +195,13 @@ function RenderedPreview() {
             } catch { /* malformed YAML — render as-is */ }
 
             setFrontmatter(fm);
+            setBodyContent(content);
             parseAsync(content)
                 .then((result) => {
                     const raw = result || parsedHtml.value;
                     setHtml(DOMPurify.sanitize(raw, {
                         ADD_TAGS: ['math', 'svg', 'use'],
-                        ADD_ATTR: ['xmlns', 'viewBox', 'fill', 'stroke', 'class', 'id', 'data-src'],
+                        ADD_ATTR: ['xmlns', 'viewBox', 'fill', 'stroke', 'class', 'id', 'data-src', 'data-json'],
                         FORCE_BODY: false,
                     }));
                 })
@@ -121,15 +213,14 @@ function RenderedPreview() {
     useEffect(() => {
         if (!containerRef.current) return;
         highlightCodeBlocks(containerRef.current);
-        const mermaidDivs = Array.from(
-            containerRef.current.querySelectorAll<HTMLElement>('.mermaid-pending')
-        );
+        const mermaidDivs = Array.from(containerRef.current.querySelectorAll<HTMLElement>('.mermaid-pending'));
         renderMermaid(mermaidDivs);
+        renderJsonBlocks(containerRef.current);
     }, [html]);
 
     return (
         <>
-            {frontmatter && <FrontmatterPanel data={frontmatter} />}
+            {frontmatter && <FrontmatterPanel data={frontmatter} bodyContent={bodyContent} />}
             <div
                 ref={containerRef}
                 class="prose"

@@ -38,6 +38,18 @@ hljs.registerLanguage('c', cpp);
 export function highlightCodeBlocks(container: HTMLElement): void {
     container.querySelectorAll<HTMLElement>('pre code').forEach((el) => {
         hljs.highlightElement(el);
+        const pre = el.parentElement;
+        if (!pre || pre.querySelector('.code-copy-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'code-copy-btn';
+        btn.textContent = 'Copy';
+        btn.addEventListener('click', () => {
+            navigator.clipboard.writeText(el.textContent ?? '').then(() => {
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+            });
+        });
+        pre.appendChild(btn);
     });
 }
 

@@ -1,4 +1,12 @@
 import { EditorView } from '@codemirror/view';
+import { undo, redo, indentMore, indentLess, moveLineUp, moveLineDown } from '@codemirror/commands';
+
+export function undoCommand(view: EditorView): boolean { return undo(view); }
+export function redoCommand(view: EditorView): boolean { return redo(view); }
+export function indentMoreCommand(view: EditorView): boolean { return indentMore(view); }
+export function indentLessCommand(view: EditorView): boolean { return indentLess(view); }
+export function moveLineUpCommand(view: EditorView): boolean { return moveLineUp(view); }
+export function moveLineDownCommand(view: EditorView): boolean { return moveLineDown(view); }
 
 function wrapSelection(view: EditorView, wrap: string, fallback: string): boolean {
     const { from, to } = view.state.selection.main;
