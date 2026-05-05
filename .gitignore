@@ -22,3 +22,5 @@ build
 *.sln
 *.sw?
 .vercel
+.claude/settings.json
+.claude/settings.local.json

@@ -6,7 +6,7 @@
     "type": "module",
     "scripts": {
         "dev": "npx vite",
-        "build": "npx tsc --noEmit && npx vite build",
+        "build": "node scripts/gen-og.mjs && npx tsc --noEmit && npx vite build",
         "preview": "npx vite preview",
         "typecheck": "npx tsc --noEmit",
         "test": "npx vitest run",

@@ -6,7 +6,7 @@
     "VITE_PARTYKIT_HOST": "m4rkdown-arena.zhenxiao-yu.partykit.dev",
     "VITE_SITE_URL": "https://m4rkdown.is-a.dev"
   },
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "headers": [
     {
       "source": "/(.*)",
