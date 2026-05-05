@@ -98,21 +98,4 @@ jobs:
       - name: Deploy to Vercel (prebuilt — no cloud rebuild)
         run: npx vercel deploy --prebuilt --prod --token ${{ secrets.VERCEL_TOKEN }}
 
-  # ── PartyKit ─────────────────────────────────────────────────────────
-  deploy-partykit:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-
-      - run: npm ci
-
-      - name: Deploy PartyKit server
-        run: npx partykit deploy
-        env:
-          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
+  # PartyKit deploy removed — run `npx partykit deploy` locally when needed
