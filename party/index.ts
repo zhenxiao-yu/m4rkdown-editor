@@ -9,17 +9,18 @@ const PLAYER_HP      = 5;
 type Phase = 'lobby' | 'countdown' | 'playing' | 'game_over';
 
 interface RoomState {
-  phase:         Phase;
-  hostId:        string;
-  isPublic:      boolean;
-  players:       Map<string, SurvivalPlayer>;
-  completedWords:Set<string>;
-  missedWords:   Set<string>;
-  claimedWords:  Map<string, string>; // wordId → playerId
-  seed:          number;
-  startTime:     number | null;
-  deathCount:    number;
-  gameTimeout:   ReturnType<typeof setTimeout> | null;
+  phase:          Phase;
+  hostId:         string;
+  isPublic:       boolean;
+  players:        Map<string, SurvivalPlayer>;
+  completedWords: Set<string>;
+  missedWords:    Set<string>;
+  claimedWords:   Map<string, string>; // wordId → playerId
+  seed:           number;
+  startTime:      number | null;
+  deathCount:     number;
+  gameTimeout:    ReturnType<typeof setTimeout> | null;
+  customWordsB64: string | null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -53,7 +54,7 @@ export default class SurvivalRoom implements Party.Server {
       players: new Map(), completedWords: new Set(),
       missedWords: new Set(), claimedWords: new Map(),
       seed: Math.floor(Math.random() * 0xFFFFFF),
-      startTime: null, deathCount: 0, gameTimeout: null,
+      startTime: null, deathCount: 0, gameTimeout: null, customWordsB64: null,
     };
   }
 
@@ -116,7 +117,10 @@ export default class SurvivalRoom implements Party.Server {
       send(conn, { type: 'error', code: 'NAME_TAKEN', message: `"${msg.playerName}" is taken.` }); return;
     }
 
-    if (msg.isHost && !state.hostId) state.hostId = conn.id;
+    if (msg.isHost && !state.hostId) {
+      state.hostId = conn.id;
+      if (msg.customWords) state.customWordsB64 = msg.customWords;
+    }
 
     const player: SurvivalPlayer = {
       id: conn.id, name: msg.playerName, color: msg.color,
@@ -141,7 +145,11 @@ export default class SurvivalRoom implements Party.Server {
     setTimeout(() => {
       state.phase     = 'playing';
       state.startTime = Date.now();
-      const wordQueue = generateWordQueue(state.seed);
+      let customWords: string[] | undefined;
+      if (state.customWordsB64) {
+        try { customWords = atob(state.customWordsB64).split(',').filter(Boolean); } catch { /* ignore bad b64 */ }
+      }
+      const wordQueue = generateWordQueue(state.seed, customWords);
 
       broadcastAll(this.room, {
         type: 'game_start',

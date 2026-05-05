@@ -6,6 +6,7 @@ import {
 } from '@/store/arena';
 import { playerStats, playerLevel, playerXpInfo } from '@/store/arena-stats';
 import { connectToRoom, connectToBrowse, sendMsg } from '@/lib/partykit-client';
+import { customWordList } from '@/store/custom-words';
 import { SoloPracticeView } from './SoloPracticeView';
 
 type HomeTab  = 'solo' | 'multi';
@@ -73,8 +74,12 @@ function MultiplayerView() {
     arenaConnecting.value = true;
     arenaError.value      = null;
 
+    const customWords = customWordList.value && customWordList.value.length >= 20
+      ? btoa(customWordList.value.join(','))
+      : undefined;
+
     connectToRoom(code);
-    sendMsg({ type: 'join', playerName: trimName, roomId: code, color: arenaPlayerColor.value, isHost: true });
+    sendMsg({ type: 'join', playerName: trimName, roomId: code, color: arenaPlayerColor.value, isHost: true, customWords });
 
     if (isPublic) {
       setTimeout(() => sendMsg({ type: 'publish' }), 500);
@@ -116,9 +121,9 @@ function MultiplayerView() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Sub-tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--c-border)', padding: '0 20px', flexShrink: 0 }}>
-        <button style={tabStyle(tab === 'create')} onClick={() => setTab('create')}>Create Room</button>
-        <button style={tabStyle(tab === 'join')}   onClick={() => setTab('join')}>Join Room</button>
-        <button style={tabStyle(tab === 'browse')} onClick={handleBrowseTab}>Browse Public</button>
+        <button class="arena-tab-btn" style={tabStyle(tab === 'create')} onClick={() => setTab('create')}>Create Room</button>
+        <button class="arena-tab-btn" style={tabStyle(tab === 'join')}   onClick={() => setTab('join')}>Join Room</button>
+        <button class="arena-tab-btn" style={tabStyle(tab === 'browse')} onClick={handleBrowseTab}>Browse Public</button>
       </div>
 
       {err && (
@@ -303,8 +308,8 @@ export function HomeView() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <PlayerProfileCard />
       <div style={{ display: 'flex', borderBottom: '1px solid var(--c-border)', padding: '0 20px', flexShrink: 0, background: 'var(--c-surface)' }}>
-        <button style={tabStyle(current === 'solo')}  onClick={() => { homeTab.value = 'solo'; }}>⚡ Solo Practice</button>
-        <button style={tabStyle(current === 'multi')} onClick={() => { homeTab.value = 'multi'; }}>⚔️ Multiplayer</button>
+        <button class="arena-tab-btn" style={tabStyle(current === 'solo')}  onClick={() => { homeTab.value = 'solo'; }}>⚡ Solo Practice</button>
+        <button class="arena-tab-btn" style={tabStyle(current === 'multi')} onClick={() => { homeTab.value = 'multi'; }}>⚔️ Multiplayer</button>
       </div>
       <div style={{ flex: 1, overflow: 'hidden', minHeight: 0, position: 'relative' }}>
         {current === 'solo'  && <SoloPracticeView />}

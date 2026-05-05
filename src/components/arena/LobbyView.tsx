@@ -39,7 +39,7 @@ export function LobbyView() {
     <div class="lobby-layout">
 
       {/* Left — player list */}
-      <div class="lobby-sidebar">
+      <div class="lobby-sidebar glass-panel">
         <div style={{ padding: '20px 20px 12px', borderBottom: '1px solid var(--c-border)' }}>
           <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
             Room Code
@@ -119,7 +119,7 @@ export function LobbyView() {
       </div>
 
       {/* Right — game mode info */}
-      <div class="lobby-content">
+      <div class="lobby-content glass-panel">
         <div style={{ maxWidth: 480 }}>
           <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--c-accent)', marginBottom: '8px', fontFamily: 'var(--font-ui)' }}>
             ⚔️ Survival Mode

@@ -28,7 +28,7 @@ export interface PublicRoomInfo {
 // ── Client → Server ───────────────────────────────────────────────────
 
 export type ClientMsg =
-  | { type: 'join';         playerName: string; roomId: string; color: string; isHost: boolean }
+  | { type: 'join';         playerName: string; roomId: string; color: string; isHost: boolean; customWords?: string }
   | { type: 'start' }
   | { type: 'claim_word';   wordId: string }
   | { type: 'word_done';    wordId: string; combo: number }
