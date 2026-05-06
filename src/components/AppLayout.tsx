@@ -16,7 +16,7 @@ import { ToastStack } from './Toast';
 import { TemplateModal } from './TemplateModal';
 import { ShortcutsModal } from './ShortcutsModal';
 import { SettingsModal } from './SettingsModal';
-import { activeDoc } from '@/store/documents';
+import { activeDoc, storageWasCorrupted } from '@/store/documents';
 import { showOutline, zenMode, toggleZenMode, isOffline } from '@/store/settings';
 import { showToast } from '@/store/toast';
 import { splitRatio, layoutMode, setLayoutMode, type LayoutMode } from '@/store/layout';
@@ -57,6 +57,17 @@ export function AppLayout() {
         _swReg?.waiting?.postMessage({ type: 'SKIP_WAITING' });
         window.location.reload();
     }
+
+    // Corruption recovery toast — fires once on mount if the previous session's storage was unreadable
+    useEffect(() => {
+        if (storageWasCorrupted) {
+            showToast(
+                'Previous session data was unreadable — started fresh. Export a backup to protect your work.',
+                'error',
+                10000,
+            );
+        }
+    }, []);
 
     // Online / offline indicator
     useEffect(() => {

@@ -4,6 +4,7 @@ import { markdownSource } from '@/store/editor';
 import { focusMode, typewriterMode, wordGoal, setWordGoal, vimMode, vimModeLabel, isOffline } from '@/store/settings';
 import { collabPeerCount, collabConnected } from '@/store/collab';
 import { lintMarkdown, type LintWarning } from '@/lib/markdown-lint';
+import { saveStatus } from '@/store/documents';
 
 function countSyllables(word: string): number {
     const w = word.toLowerCase().replace(/[^a-z]/g, '');
@@ -187,7 +188,8 @@ export function StatusBar() {
                         )}
                     </div>
                 )}
-                <span style={{ color: 'var(--c-border)' }}>M4rkdown v2.1</span>
+                <SaveStatusIndicator />
+                <span style={{ color: 'var(--c-border)' }}>M4rkdown v3.1</span>
             </div>
             {goal > 0 && (
                 <div style={{ height: 3, backgroundColor: 'var(--c-border)' }}>
@@ -199,6 +201,27 @@ export function StatusBar() {
                 </div>
             )}
         </div>
+    );
+}
+
+function SaveStatusIndicator() {
+    const status = saveStatus.value;
+    if (status === 'idle') return null;
+
+    const CONFIG = {
+        saving: { label: 'Saving…', color: 'var(--c-muted)' },
+        saved:  { label: 'Saved',   color: 'var(--c-success)' },
+        error:  { label: 'Storage error', color: 'var(--c-danger)' },
+    } as const;
+
+    const { label, color } = CONFIG[status];
+    return (
+        <span style={{
+            fontSize: 10, fontFamily: 'var(--font-ui)',
+            color, transition: 'color 0.2s', fontWeight: status === 'error' ? 700 : 400,
+        }}>
+            {label}
+        </span>
     );
 }
 

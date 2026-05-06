@@ -8,12 +8,13 @@ import { EditorState, Compartment } from '@codemirror/state';
 import { keymap } from '@codemirror/view';
 import { openSearchPanel } from '@codemirror/search';
 import { markdownSource, activeTab } from '@/store/editor';
-import { activeDocId, updateDocContent } from '@/store/documents';
+import { activeDocId, updateDocContent, markSavePending } from '@/store/documents';
 import { theme } from '@/store/theme';
 import { focusMode, typewriterMode, vimMode, vimModeLabel, toggleVimMode } from '@/store/settings';
 import { editorScrollFraction, layoutMode } from '@/store/layout';
 import { debounce } from '@/lib/debounce';
 import { focusModeExtension, typewriterModeExtension, editorBaseTheme } from '@/lib/cm-extensions';
+import { showToast } from '@/store/toast';
 import { Toolbar } from './Toolbar';
 import {
     boldCommand, italicCommand, linkCommand,
@@ -23,11 +24,15 @@ import {
     moveLineUpCommand, moveLineDownCommand,
 } from '@/lib/codemirror-commands';
 
+// ── Image size limits ─────────────────────────────────────────────────
+const IMG_WARN_BYTES  = 300 * 1024;  // 300 KB — show info toast
+const IMG_BLOCK_BYTES = 2 * 1024 * 1024; // 2 MB — refuse insertion
+
 // Compartments for hot-swappable extensions
-const themeComp = new Compartment();
-const focusComp = new Compartment();
+const themeComp      = new Compartment();
+const focusComp      = new Compartment();
 const typewriterComp = new Compartment();
-const vimComp = new Compartment();
+const vimComp        = new Compartment();
 
 function getThemeExt(t: 'dark' | 'light') {
     return t === 'light' ? githubLight : oneDark;
@@ -35,17 +40,22 @@ function getThemeExt(t: 'dark' | 'light') {
 
 export function EditorPane() {
     const containerRef = useRef<HTMLDivElement>(null);
-    const viewRef = useRef<EditorView | null>(null);
+    const viewRef      = useRef<EditorView | null>(null);
 
-    // exposed for Toolbar
     function getView() { return viewRef.current; }
 
     useEffect(() => {
         if (viewRef.current || !containerRef.current) return;
 
-        const debouncedSave = debounce((content: string) => {
-            updateDocContent(activeDocId.value, content);
+        // Capture docId at call time to prevent the doc-switch race:
+        // debounce fires 300 ms later; by then activeDocId may have changed.
+        const debouncedSave = debounce((content: string, docId: string) => {
+            updateDocContent(docId, content);
         }, 300);
+
+        // Flush pending save before the page unloads
+        function onBeforeUnload() { debouncedSave.flush(); }
+        window.addEventListener('beforeunload', onBeforeUnload);
 
         const state = EditorState.create({
             doc: markdownSource.value,
@@ -58,24 +68,27 @@ export function EditorPane() {
                 typewriterComp.of([]),
                 vimComp.of([]),
                 keymap.of([
-                    { key: 'Ctrl-b', run: boldCommand },
-                    { key: 'Ctrl-i', run: italicCommand },
-                    { key: 'Ctrl-k', run: linkCommand },
-                    { key: 'Ctrl-`', run: inlineCodeCommand },
+                    { key: 'Ctrl-b',       run: boldCommand },
+                    { key: 'Ctrl-i',       run: italicCommand },
+                    { key: 'Ctrl-k',       run: linkCommand },
+                    { key: 'Ctrl-`',       run: inlineCodeCommand },
                     { key: 'Ctrl-Shift-k', run: codeBlockCommand },
-                    { key: 'Ctrl-h', run: openSearchPanel },
-                    { key: 'Mod-h', run: openSearchPanel },
-                    { key: 'Ctrl-1', run: heading1Command },
-                    { key: 'Ctrl-2', run: heading2Command },
-                    { key: 'Ctrl-3', run: heading3Command },
+                    { key: 'Ctrl-h',       run: openSearchPanel },
+                    { key: 'Mod-h',        run: openSearchPanel },
+                    { key: 'Ctrl-1',       run: heading1Command },
+                    { key: 'Ctrl-2',       run: heading2Command },
+                    { key: 'Ctrl-3',       run: heading3Command },
                     { key: 'Ctrl-Shift-8', run: bulletListCommand },
                     { key: 'Ctrl-Shift-7', run: orderedListCommand },
                     { key: 'Ctrl-Shift-.', run: blockquoteCommand },
-                    { key: 'Alt-ArrowUp', run: moveLineUpCommand },
-                    { key: 'Alt-ArrowDown', run: moveLineDownCommand },
+                    { key: 'Alt-ArrowUp',  run: moveLineUpCommand },
+                    { key: 'Alt-ArrowDown',run: moveLineDownCommand },
                 ]),
                 EditorView.updateListener.of((update) => {
-                    if (update.docChanged) debouncedSave(update.state.doc.toString());
+                    if (update.docChanged) {
+                        markSavePending();
+                        debouncedSave(update.state.doc.toString(), activeDocId.value);
+                    }
                 }),
             ],
         });
@@ -83,7 +96,7 @@ export function EditorPane() {
         viewRef.current = new EditorView({ state, parent: containerRef.current });
         const view = viewRef.current;
 
-        // F4: Editor scroll → sync preview
+        // Scroll sync → preview
         const onEditorScroll = () => {
             if (layoutMode.value !== 'split') return;
             const dom = view.scrollDOM;
@@ -92,9 +105,8 @@ export function EditorPane() {
         };
         view.scrollDOM.addEventListener('scroll', onEditorScroll, { passive: true });
 
-        // F7: Vim mode compartment
+        // Vim mode compartment (lazy-loaded)
         const stopVim = effect(() => {
-            // vim() loaded lazily to avoid bundle impact when unused
             if (vimMode.value) {
                 import('@replit/codemirror-vim').then(({ vim }) => {
                     viewRef.current?.dispatch({ effects: vimComp.reconfigure(vim()) });
@@ -104,7 +116,7 @@ export function EditorPane() {
             }
         });
 
-        // F7: Vim mode label indicator
+        // Vim mode label indicator
         function onVimChange(e: Event) {
             const m = (e as CustomEvent<{ mode: string }>).detail?.mode ?? '';
             vimModeLabel.value = m === 'normal' ? '-- NORMAL --'
@@ -114,8 +126,24 @@ export function EditorPane() {
         }
         view.dom.addEventListener('vim-mode-change', onVimChange);
 
-        // F1: Image paste + drag-drop
+        // Image paste + drag-drop
         function insertImageFile(file: File, name: string) {
+            if (file.size > IMG_BLOCK_BYTES) {
+                showToast(
+                    `Image too large (${Math.round(file.size / 1024)}KB) — use an external URL instead.`,
+                    'error',
+                    6000,
+                );
+                return;
+            }
+            if (file.size > IMG_WARN_BYTES) {
+                showToast(
+                    `Large image (${Math.round(file.size / 1024)}KB) stored as base64. ` +
+                    'Consider using an external image URL to avoid filling your storage.',
+                    'info',
+                    5000,
+                );
+            }
             const reader = new FileReader();
             reader.onload = () => {
                 const md = `![${name}](${reader.result as string})`;
@@ -149,9 +177,18 @@ export function EditorPane() {
         view.dom.addEventListener('dragover', handleDragOver);
         view.dom.addEventListener('drop', handleDrop);
 
-        // Sync content when doc switches
+        // Sync content when doc switches; flush any pending save for the previous doc first
+        let prevDocId = activeDocId.value;
         const stopContent = effect(() => {
             const incoming = markdownSource.value;
+            const currentDocId = activeDocId.value;
+
+            // Doc switched — flush pending save for the outgoing document
+            if (currentDocId !== prevDocId) {
+                debouncedSave.flush();
+                prevDocId = currentDocId;
+            }
+
             if (!viewRef.current) return;
             const current = viewRef.current.state.doc.toString();
             if (current !== incoming) {
@@ -159,19 +196,14 @@ export function EditorPane() {
             }
         });
 
-        // Swap theme when app theme changes
         const stopTheme = effect(() => {
             viewRef.current?.dispatch({ effects: themeComp.reconfigure(getThemeExt(theme.value)) });
         });
-
-        // Toggle focus mode
         const stopFocus = effect(() => {
             viewRef.current?.dispatch({
                 effects: focusComp.reconfigure(focusMode.value ? focusModeExtension : []),
             });
         });
-
-        // Toggle typewriter mode
         const stopTypewriter = effect(() => {
             viewRef.current?.dispatch({
                 effects: typewriterComp.reconfigure(typewriterMode.value ? typewriterModeExtension : []),
@@ -179,6 +211,8 @@ export function EditorPane() {
         });
 
         return () => {
+            debouncedSave.flush(); // flush on unmount too
+            window.removeEventListener('beforeunload', onBeforeUnload);
             view.scrollDOM.removeEventListener('scroll', onEditorScroll);
             view.dom.removeEventListener('vim-mode-change', onVimChange);
             view.dom.removeEventListener('paste', handlePaste);
