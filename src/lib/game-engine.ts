@@ -96,7 +96,17 @@ function pickWordForTier(rng: () => number, tier: 1|2|3|4, used: Set<string>, cu
 // Pre-generate enough words for MAX_GAME_MS (8 minutes)
 const MAX_GAME_MS = 8 * 60_000;
 
-export function generateWordQueue(seed: number, customWords?: string[]): WordDef[] {
+export type Difficulty = 'easy' | 'normal' | 'hard' | 'expert';
+
+const DIFFICULTY_SCALE: Record<Difficulty, { fall: number; interval: number }> = {
+  easy:   { fall: 1.5,  interval: 1.4 },
+  normal: { fall: 1.0,  interval: 1.0 },
+  hard:   { fall: 0.75, interval: 0.70 },
+  expert: { fall: 0.55, interval: 0.50 },
+};
+
+export function generateWordQueue(seed: number, customWords?: string[], difficulty: Difficulty = 'normal'): WordDef[] {
+  const scale  = DIFFICULTY_SCALE[difficulty];
   const custom = customWords && customWords.length >= 20 ? buildCustomTiers(customWords) : null;
   const rng    = mkRng(seed);
   const words: WordDef[] = [];
@@ -121,12 +131,12 @@ export function generateWordQueue(seed: number, customWords?: string[]): WordDef
         id: `w${id++}`,
         text,
         spawnAt: t + b * 400,
-        fallDuration: wave.fallDurationMs + rngInt(rng, -200, 200),
+        fallDuration: Math.round((wave.fallDurationMs + rngInt(rng, -200, 200)) * scale.fall),
         lane,
       });
     }
 
-    t += wave.intervalMs + rngInt(rng, -300, 300);
+    t += Math.round((wave.intervalMs + rngInt(rng, -300, 300)) * scale.interval);
   }
 
   return words;

@@ -7,6 +7,7 @@ import { useRef, useEffect, useState } from 'preact/hooks';
 import { effect } from '@preact/signals';
 import { parsedHtml, activeTab, markdownSource } from '@/store/editor';
 import { editorScrollFraction, layoutMode } from '@/store/layout';
+import { previewTheme } from '@/store/settings';
 import { activeDocId, updateDocContent } from '@/store/documents';
 import { TabBar } from './TabBar';
 import { SyntaxTreeTab } from './SyntaxTreeTab';
@@ -218,8 +219,10 @@ function RenderedPreview() {
         renderJsonBlocks(containerRef.current);
     }, [html]);
 
+    const theme = previewTheme.value;
+
     return (
-        <>
+        <div class={theme !== 'default' ? `preview-theme-${theme}` : undefined}>
             {frontmatter && <FrontmatterPanel data={frontmatter} bodyContent={bodyContent} />}
             <div
                 ref={containerRef}
@@ -227,7 +230,7 @@ function RenderedPreview() {
                 style={{ padding: '24px 28px', minHeight: '100%' }}
                 dangerouslySetInnerHTML={{ __html: html }}
             />
-        </>
+        </div>
     );
 }
 

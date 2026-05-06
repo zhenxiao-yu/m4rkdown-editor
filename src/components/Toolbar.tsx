@@ -8,7 +8,7 @@ import {
     bulletListCommand, orderedListCommand, blockquoteCommand,
     undoCommand, redoCommand, indentMoreCommand, indentLessCommand,
 } from '@/lib/codemirror-commands';
-import { focusMode, typewriterMode, showOutline, toggleFocusMode, toggleTypewriterMode, toggleOutline, vimMode, toggleVimMode } from '@/store/settings';
+import { focusMode, typewriterMode, showOutline, toggleFocusMode, toggleTypewriterMode, toggleOutline, vimMode, toggleVimMode, previewTheme, setPreviewTheme, PREVIEW_THEMES } from '@/store/settings';
 
 // Icon sizes: toolbar actions = size 14, strokeWidth 2
 
@@ -179,6 +179,30 @@ export function Toolbar({ getView }: ToolbarProps) {
             >
                 VIM
             </button>
+
+            <div style={{ width: '1px', height: '18px', backgroundColor: 'var(--c-border)', margin: '0 4px', flexShrink: 0 }} />
+
+            <select
+                value={previewTheme.value}
+                onChange={(e) => setPreviewTheme((e.target as HTMLSelectElement).value as import('@/store/settings').PreviewTheme)}
+                title="Preview Theme"
+                aria-label="Preview Theme"
+                style={{
+                    background: 'var(--c-btn)',
+                    color: 'var(--c-text)',
+                    border: '1px solid var(--c-border)',
+                    borderRadius: '4px',
+                    padding: '3px 6px',
+                    fontSize: '11px',
+                    fontFamily: 'var(--font-ui)',
+                    cursor: 'pointer',
+                    outline: 'none',
+                }}
+            >
+                {PREVIEW_THEMES.map(t => (
+                    <option key={t.id} value={t.id}>{t.label}</option>
+                ))}
+            </select>
         </div>
     );
 }

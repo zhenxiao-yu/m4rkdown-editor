@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { effect } from '@preact/signals';
-import { Command, Swords, Home, PanelLeft, Columns2, PanelRight, Maximize2, Minimize2 } from 'lucide-react';
+import { Command, Swords, Home, PanelLeft, Columns2, PanelRight, Maximize2, Minimize2, Settings } from 'lucide-react';
 import { EditorPane } from './EditorPane';
 import { PreviewPane } from './PreviewPane';
 import { DocumentTabs } from './DocumentTabs';
@@ -14,6 +14,8 @@ import { ResizeHandle } from './ResizeHandle';
 import { CommandPalette } from './CommandPalette';
 import { ToastStack } from './Toast';
 import { TemplateModal } from './TemplateModal';
+import { ShortcutsModal } from './ShortcutsModal';
+import { SettingsModal } from './SettingsModal';
 import { activeDoc } from '@/store/documents';
 import { showOutline, zenMode, toggleZenMode, isOffline } from '@/store/settings';
 import { showToast } from '@/store/toast';
@@ -43,6 +45,8 @@ if ('serviceWorker' in navigator) {
 export function AppLayout() {
     const docTitle = activeDoc.value?.title ?? '';
     const [showUpdate, setShowUpdate] = useState(false);
+    const [showShortcuts, setShowShortcuts] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
     const ratio = splitRatio.value;
     const mode = layoutMode.value;
     const isZen = zenMode.value;
@@ -77,6 +81,15 @@ export function AppLayout() {
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
                 e.preventDefault(); toggleZenMode();
             }
+            // ? key — only when no input/textarea is focused
+            if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
+                const tag = (document.activeElement as HTMLElement)?.tagName?.toLowerCase();
+                if (tag !== 'input' && tag !== 'textarea' && !(document.activeElement as HTMLElement)?.isContentEditable) {
+                    e.preventDefault();
+                    setShowShortcuts(v => !v);
+                }
+            }
+            if (e.key === 'Escape') setShowShortcuts(false);
         }
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
@@ -152,6 +165,24 @@ export function AppLayout() {
                         >
                             <Command size={15} strokeWidth={1.75} />
                         </button>
+                        <button
+                            class="btn-icon"
+                            data-tooltip="Keyboard Shortcuts"
+                            data-tooltip-shortcut="?"
+                            aria-label="Show keyboard shortcuts"
+                            onClick={() => setShowShortcuts(v => !v)}
+                            style={{ fontFamily: 'var(--font-ui)', fontSize: '14px', fontWeight: 700, padding: '4px 8px' }}
+                        >
+                            ?
+                        </button>
+                        <button
+                            class="btn-icon"
+                            data-tooltip="Settings"
+                            aria-label="Open settings"
+                            onClick={() => setShowSettings(v => !v)}
+                        >
+                            <Settings size={15} strokeWidth={1.75} />
+                        </button>
                         <ShareButton />
                         <button
                             class="btn-icon"
@@ -225,6 +256,8 @@ export function AppLayout() {
             <CommandPalette />
             <ToastStack />
             {templateModalOpen.value && <TemplateModal onClose={closeTemplateModal} />}
+            {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
+            {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
 
         </div>
     );

@@ -254,4 +254,155 @@
 /* ─── Mermaid diagrams ───────────────────────────────────────────── */
 .prose .mermaid-rendered { text-align: center; margin: 1em 0; }
 .prose .mermaid-rendered svg { max-width: 100%; height: auto; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   PREVIEW THEMES
+   Each theme is scoped to .preview-theme-{name} and overrides only
+   typography/layout — color still follows the global dark/light toggle.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── GitHub theme ─────────────────────────────────────────────── */
+.preview-theme-github .prose {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.preview-theme-github .prose h1,
+.preview-theme-github .prose h2 {
+  padding-bottom: 0.3em;
+}
+.preview-theme-github .prose h1 { font-size: 2em; }
+.preview-theme-github .prose h2 { font-size: 1.5em; }
+.preview-theme-github .prose h3 { font-size: 1.25em; }
+.preview-theme-github .prose code {
+  font-size: 85%;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+.preview-theme-github .prose pre {
+  padding: 16px;
+  border-radius: 6px;
+  line-height: 1.45;
+}
+.preview-theme-github .prose blockquote {
+  border-left: 4px solid var(--c-border-strong);
+  border-radius: 0;
+  background: none;
+  font-style: normal;
+  color: var(--c-muted);
+  padding: 0 1em;
+}
+
+/* ─── Serif theme ──────────────────────────────────────────────── */
+.preview-theme-serif .prose {
+  font-family: Georgia, 'Palatino Linotype', Palatino, 'Book Antiqua', serif;
+  font-size: 16px;
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+}
+.preview-theme-serif .prose h1,
+.preview-theme-serif .prose h2,
+.preview-theme-serif .prose h3,
+.preview-theme-serif .prose h4 {
+  font-family: Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.preview-theme-serif .prose h1 { font-size: 2.2em; border-bottom: 2px solid var(--c-border); }
+.preview-theme-serif .prose h2 { font-size: 1.6em; border-bottom: 1px solid var(--c-border); }
+.preview-theme-serif .prose blockquote {
+  border-left: 3px solid var(--c-muted);
+  background: none;
+  font-style: italic;
+  font-size: 1.05em;
+  color: var(--c-muted);
+  padding: 0.25em 1.25em;
+}
+.preview-theme-serif .prose code {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85em;
+}
+
+/* ─── Minimal theme ────────────────────────────────────────────── */
+.preview-theme-minimal .prose {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.9;
+  max-width: 68ch;
+  margin: 0 auto;
+}
+.preview-theme-minimal .prose h1,
+.preview-theme-minimal .prose h2,
+.preview-theme-minimal .prose h3 {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-top: 2.5em;
+  font-weight: 600;
+}
+.preview-theme-minimal .prose h1 { font-size: 1.8em; letter-spacing: -0.03em; }
+.preview-theme-minimal .prose h2 { font-size: 1.25em; letter-spacing: -0.02em; }
+.preview-theme-minimal .prose h3 { font-size: 1.1em; }
+.preview-theme-minimal .prose blockquote {
+  border-left: 2px solid var(--c-muted);
+  background: none;
+  font-style: normal;
+  padding: 0 1em;
+}
+.preview-theme-minimal .prose hr {
+  border-top: 1px dashed var(--c-border);
+}
+.preview-theme-minimal .prose p { margin: 1.2em 0; }
+
+/* ─── Terminal theme ───────────────────────────────────────────── */
+.preview-theme-terminal {
+  background: #0d1117;
+}
+.preview-theme-terminal .prose {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #c9d1d9;
+}
+.preview-theme-terminal .prose h1,
+.preview-theme-terminal .prose h2,
+.preview-theme-terminal .prose h3,
+.preview-theme-terminal .prose h4,
+.preview-theme-terminal .prose h5,
+.preview-theme-terminal .prose h6 {
+  color: #39d353;
+  border-color: #21262d;
+}
+.preview-theme-terminal .prose h1::before { content: '# '; }
+.preview-theme-terminal .prose h2::before { content: '## '; }
+.preview-theme-terminal .prose h3::before { content: '### '; }
+.preview-theme-terminal .prose a { color: #58a6ff; }
+.preview-theme-terminal .prose strong { color: #e6edf3; }
+.preview-theme-terminal .prose em { color: #8b949e; }
+.preview-theme-terminal .prose code {
+  background: #161b22;
+  color: #39d353;
+  border-color: #21262d;
+}
+.preview-theme-terminal .prose pre {
+  background: #010409;
+  border-color: #21262d;
+}
+.preview-theme-terminal .prose pre code { color: #c9d1d9; }
+.preview-theme-terminal .prose blockquote {
+  border-color: #21262d;
+  background: #161b22;
+  color: #8b949e;
+}
+.preview-theme-terminal .prose th { background: #161b22; color: #39d353; }
+.preview-theme-terminal .prose td, .preview-theme-terminal .prose th {
+  border-color: #21262d;
+}
+.preview-theme-terminal .prose hr { border-color: #21262d; }
+.preview-theme-terminal .prose ul li::marker,
+.preview-theme-terminal .prose ol li::marker { color: #39d353; }
+.preview-theme-terminal .prose .table-of-contents {
+  background: #161b22;
+  border-color: #21262d;
+}
+.preview-theme-terminal .prose blockquote p { color: #8b949e; }
 .prose .mermaid-pending { display: none; }

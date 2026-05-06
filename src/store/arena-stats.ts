@@ -3,6 +3,15 @@ import { signal, computed } from '@preact/signals';
 
 // ─── Types ────────────────────────────────────────────────────────────
 
+export interface HistoryEntry {
+  ts: number;
+  wpm: number;
+  accuracy: number;
+  score: number;
+  isWin: boolean;
+  mode: string;
+}
+
 export interface PlayerStats {
   totalGames: number;
   totalWins: number;
@@ -20,6 +29,7 @@ export interface PlayerStats {
   dailyBestWpm: number;
   dailyLeaderboard: DailyEntry[];
   playerColor: string;
+  recentGames: HistoryEntry[];     // last 20 games
 }
 
 export interface DailyEntry {
@@ -122,6 +132,7 @@ function defaultStats(): PlayerStats {
     dailyChallengeDate: '', dailyBestScore: 0, dailyBestWpm: 0,
     dailyLeaderboard: [],
     playerColor: '#f7df4b',
+    recentGames: [],
   };
 }
 
@@ -158,6 +169,17 @@ export function recordGame(result: GameResult): string[] {
 
   const xpEarned = xpForGame(result);
   s.totalXp += xpEarned;
+
+  // Append to recent game history (keep last 20)
+  const histEntry: HistoryEntry = {
+    ts: Date.now(),
+    wpm: result.wpm,
+    accuracy: result.accuracy,
+    score: result.score,
+    isWin: result.isWin,
+    mode: result.promptId?.startsWith('daily') ? 'Daily' : result.promptId === 'solo' ? 'Solo' : 'Multi',
+  };
+  s.recentGames = [...(s.recentGames ?? []).slice(-19), histEntry];
 
   // Check achievements
   const newlyUnlocked: string[] = [];
@@ -224,4 +246,17 @@ export function setPlayerColor(color: string) {
 
 export function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+/** Deterministic numeric seed derived from today's date (same for everyone). */
+export function dailyChallengeSeed(): number {
+  const s = todayStr().replace(/-/g, '');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }
+  return h % 0xFFFFFF;
+}
+
+/** True if today's daily challenge has already been played. */
+export function hasDailyChallengeToday(): boolean {
+  return playerStats.value.dailyChallengeDate === todayStr() && playerStats.value.dailyBestScore > 0;
 }

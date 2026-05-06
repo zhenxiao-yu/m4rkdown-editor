@@ -1245,3 +1245,99 @@ body {
   box-shadow: 0 0 16px color-mix(in srgb, var(--c-accent) 20%, transparent);
   transform: translateY(-2px);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   PRINT / PDF EXPORT
+   Hides all editor chrome, renders only the preview pane content.
+   Invoke via window.print() (Ctrl+P or Export menu).
+   ═══════════════════════════════════════════════════════════════════ */
+@media print {
+  /* Hide everything except the preview */
+  header, .toolbar, .document-tabs, .status-bar,
+  .resize-handle, [class*="battle-"], [class*="arena-"],
+  .outline-sidebar, .command-palette-backdrop,
+  .tab-bar, [data-tab="tree"], [data-tab="source"],
+  .share-btn, button, select,
+  [class*="editor-pane"], [class*="EditorPane"],
+  .frontmatter-panel {
+    display: none !important;
+  }
+
+  * { box-shadow: none !important; text-shadow: none !important; }
+
+  body, html {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 12pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  .prose {
+    color: #000 !important;
+    font-family: Georgia, serif;
+    font-size: 11pt;
+    line-height: 1.7;
+    max-width: 100%;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .prose h1, .prose h2, .prose h3,
+  .prose h4, .prose h5, .prose h6 {
+    color: #000 !important;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .prose h1 { font-size: 20pt; border-bottom: 1pt solid #ccc; }
+  .prose h2 { font-size: 16pt; border-bottom: 1pt solid #eee; }
+  .prose h3 { font-size: 13pt; }
+
+  .prose a { color: #000 !important; text-decoration: underline; }
+  .prose a[href]::after { content: ' (' attr(href) ')'; font-size: 9pt; color: #555; }
+  .prose a[href^="#"]::after { content: ''; }
+
+  .prose code {
+    background: #f5f5f5 !important;
+    color: #333 !important;
+    border: 1pt solid #ddd !important;
+    font-size: 9pt;
+  }
+
+  .prose pre {
+    background: #f5f5f5 !important;
+    border: 1pt solid #ddd !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .prose pre code { background: none !important; border: none !important; }
+
+  .prose blockquote {
+    border-left: 3pt solid #999 !important;
+    background: none !important;
+    color: #555 !important;
+    padding-left: 12pt;
+  }
+
+  .prose table { page-break-inside: avoid; break-inside: avoid; }
+  .prose th { background: #eee !important; color: #000 !important; }
+  .prose td, .prose th { border: 1pt solid #ccc !important; }
+  .prose tr:nth-child(even) td { background: #f9f9f9 !important; }
+
+  .prose img { max-width: 100%; page-break-inside: avoid; break-inside: avoid; }
+
+  .prose hr { border-top: 1pt solid #ccc !important; }
+
+  /* Hide interactive/non-printable elements */
+  .code-copy-btn, .header-anchor,
+  .mermaid-pending { display: none !important; }
+
+  @page {
+    margin: 2cm 2.5cm;
+    size: A4;
+  }
+}

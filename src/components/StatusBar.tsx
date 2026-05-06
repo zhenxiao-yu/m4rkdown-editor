@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { markdownSource } from '@/store/editor';
 import { focusMode, typewriterMode, wordGoal, setWordGoal, vimMode, vimModeLabel, isOffline } from '@/store/settings';
 import { collabPeerCount, collabConnected } from '@/store/collab';
+import { lintMarkdown, type LintWarning } from '@/lib/markdown-lint';
 
 function countSyllables(word: string): number {
     const w = word.toLowerCase().replace(/[^a-z]/g, '');
@@ -46,8 +47,14 @@ export function StatusBar() {
 
     const [showGoalInput, setShowGoalInput] = useState(false);
     const [goalDraft, setGoalDraft] = useState('');
+    const [showLintPanel, setShowLintPanel] = useState(false);
     const offline = isOffline.value;
     const peersOnline = collabConnected.value ? collabPeerCount.value : 0;
+
+    // Lint — only run when doc is non-trivial
+    const lintWarnings: LintWarning[] = words >= 5 ? lintMarkdown(src) : [];
+    const lintErrors = lintWarnings.filter(w => w.severity === 'error').length;
+    const lintWarns  = lintWarnings.filter(w => w.severity === 'warning').length;
 
     const pct = goal > 0 ? Math.min(100, Math.round((words / goal) * 100)) : 0;
     const goalMet = goal > 0 && words >= goal;
@@ -137,6 +144,49 @@ export function StatusBar() {
                 {isTypewriter && <Pill label="Typewriter" />}
                 {offline && <Pill label="Offline" color="var(--c-danger)" />}
                 {peersOnline > 0 && <Pill label={`${peersOnline + 1} online`} color="var(--c-success)" />}
+                {lintWarnings.length > 0 && (
+                    <div style={{ position: 'relative' }}>
+                        <button
+                            onClick={() => setShowLintPanel(v => !v)}
+                            style={{
+                                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                                color: lintErrors > 0 ? 'var(--c-danger)' : '#f59e0b',
+                                fontSize: 11, fontFamily: 'var(--font-ui)', fontWeight: 700,
+                            }}
+                            title="Markdown lint warnings — click for details"
+                        >
+                            {lintErrors > 0 ? `⛔ ${lintErrors} error${lintErrors !== 1 ? 's' : ''}` : `⚠️ ${lintWarns} hint${lintWarns !== 1 ? 's' : ''}`}
+                        </button>
+                        {showLintPanel && (
+                            <>
+                                <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => setShowLintPanel(false)} />
+                                <div style={{
+                                    position: 'absolute', bottom: 'calc(100% + 6px)', right: 0,
+                                    zIndex: 50, minWidth: 280, maxWidth: 360,
+                                    background: 'var(--c-surface-raised)',
+                                    border: '1px solid var(--c-border-strong)',
+                                    borderRadius: 'var(--r-md)',
+                                    boxShadow: 'var(--shadow-lg)',
+                                    padding: '8px 0',
+                                    fontFamily: 'var(--font-ui)',
+                                }}>
+                                    <div style={{ padding: '4px 12px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--c-muted)', borderBottom: '1px solid var(--c-border)' }}>
+                                        Lint ({lintWarnings.length})
+                                    </div>
+                                    {lintWarnings.map((w, i) => (
+                                        <div key={i} style={{ display: 'flex', gap: 8, padding: '5px 12px', fontSize: 11 }}>
+                                            <span style={{ color: w.severity === 'error' ? 'var(--c-danger)' : '#f59e0b', flexShrink: 0, fontWeight: 700 }}>
+                                                {w.severity === 'error' ? '⛔' : '⚠️'}
+                                            </span>
+                                            <span style={{ color: 'var(--c-muted)' }}>L{w.line}</span>
+                                            <span style={{ color: 'var(--c-text)' }}>{w.message}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
                 <span style={{ color: 'var(--c-border)' }}>M4rkdown v2.1</span>
             </div>
             {goal > 0 && (

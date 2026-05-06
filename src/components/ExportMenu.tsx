@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { ChevronDown, FileDown, FileCode2, Clipboard } from 'lucide-react';
+import { ChevronDown, FileDown, FileCode2, Clipboard, Printer } from 'lucide-react';
 import { markdownSource, parsedHtml } from '@/store/editor';
 import { activeDoc } from '@/store/documents';
 import { exportMarkdown, exportHtml } from '@/lib/export';
@@ -19,9 +19,10 @@ export function ExportMenu() {
     }
 
     const items = [
-        { label: 'Download .md',   icon: <FileDown size={13} strokeWidth={2} />,  action: handleExportMd },
-        { label: 'Download .html', icon: <FileCode2 size={13} strokeWidth={2} />, action: handleExportHtml },
-        { label: 'Copy HTML',      icon: <Clipboard size={13} strokeWidth={2} />, action: handleCopyHtml },
+        { label: 'Download .md',     icon: <FileDown size={13} strokeWidth={2} />,  action: handleExportMd },
+        { label: 'Download .html',   icon: <FileCode2 size={13} strokeWidth={2} />, action: handleExportHtml },
+        { label: 'Copy HTML',        icon: <Clipboard size={13} strokeWidth={2} />, action: handleCopyHtml },
+        { label: 'Print / Export PDF', icon: <Printer size={13} strokeWidth={2} />, action: () => { setOpen(false); setTimeout(() => window.print(), 100); } },
     ];
 
     return (

@@ -1,9 +1,10 @@
 import { signal } from '@preact/signals';
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { generateWordQueue, wordProgress, wordScore } from '@/lib/game-engine';
+import { generateWordQueue, wordProgress, wordScore, type Difficulty } from '@/lib/game-engine';
 import type { WordDef } from '@/lib/game-engine';
 import { sfxPop, sfxMiss, sfxCombo, sfxCountdown, sfxGo, sfxSetMuted, sfxIsMuted } from '@/lib/sfx';
-import { recordGame, ACHIEVEMENTS, playerLevel } from '@/store/arena-stats';
+import { recordGame, recordDailyScore, ACHIEVEMENTS, playerLevel, playerStats, dailyChallengeSeed, todayStr, hasDailyChallengeToday } from '@/store/arena-stats';
+import { arenaPlayerName } from '@/store/arena';
 import { customWordList, clearCustomWords } from '@/store/custom-words';
 import { showToast } from '@/store/toast';
 import { WordImportModal } from './WordImportModal';
@@ -57,6 +58,9 @@ function accColor(a: number) { return a >= 95 ? '#22c55e' : a >= 80 ? '#f59e0b' 
 // ── Solo game signals (persist across re-renders, reset on new game) ──
 type SoloState = 'idle' | 'countdown' | 'playing' | 'dead' | 'survived';
 
+const soloIsDailyChallenge = signal<boolean>(false);
+const soloDifficulty = signal<Difficulty>('normal');
+
 const soloState      = signal<SoloState>('idle');
 const soloCountdown  = signal(3);
 const soloHp         = signal(5);
@@ -92,9 +96,10 @@ function resetSolo() {
   soloFinalAccuracy.value = 100;
 }
 
-function startNewGame() {
-  const seed = Math.floor(Math.random() * 0xFFFFFF);
-  soloWords.value      = generateWordQueue(seed, customWordList.value ?? undefined);
+function startNewGame(daily = false) {
+  const seed = daily ? dailyChallengeSeed() : Math.floor(Math.random() * 0xFFFFFF);
+  soloIsDailyChallenge.value = daily;
+  soloWords.value      = generateWordQueue(seed, daily ? undefined : (customWordList.value ?? undefined), soloDifficulty.value);
   soloHp.value         = 5;
   soloScore.value      = 0;
   soloCombo.value      = 0;
@@ -125,16 +130,56 @@ export function SoloPracticeView() {
 function IdleScreen() {
   const [showImport, setShowImport] = useState(false);
   const customWords = customWordList.value;
+  const stats = playerStats.value;
+  const dailyDone = hasDailyChallengeToday();
+  const todayDate = todayStr();
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 24, padding: 40, textAlign: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 20, padding: 40, textAlign: 'center', overflowY: 'auto' }}>
         <div style={{ fontSize: 48 }}>⚡</div>
         <div style={{ fontWeight: 800, fontSize: 24, color: 'var(--c-accent)', fontFamily: 'var(--font-ui)' }}>Solo Survival</div>
         <div style={{ fontSize: 14, color: 'var(--c-text-2)', maxWidth: 360, lineHeight: 1.6, fontFamily: 'var(--font-ui)' }}>
           Words fall from the sky. Type them before they hit the ground.<br />
           Miss 5 and it's game over. Survive 8 minutes to win!
         </div>
+
+        {/* Daily Challenge card */}
+        <div style={{
+          width: '100%', maxWidth: 340,
+          border: '1px solid var(--c-accent)',
+          borderRadius: 10,
+          padding: '14px 18px',
+          background: 'color-mix(in srgb, var(--c-accent) 8%, var(--c-surface))',
+          textAlign: 'left',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 20 }}>📅</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text)', fontFamily: 'var(--font-ui)' }}>Daily Challenge</div>
+                <div style={{ fontSize: 11, color: 'var(--c-muted)', fontFamily: 'var(--font-ui)' }}>{todayDate} · same words for everyone</div>
+              </div>
+            </div>
+            {dailyDone && (
+              <span style={{ fontSize: 11, color: '#22c55e', fontWeight: 700, fontFamily: 'var(--font-ui)' }}>✓ Done</span>
+            )}
+          </div>
+          {dailyDone && stats.dailyChallengeDate === todayDate && (
+            <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--c-muted)', fontFamily: 'var(--font-ui)', marginBottom: 8 }}>
+              <span>Best score: <b style={{ color: 'var(--c-accent)' }}>{stats.dailyBestScore}</b></span>
+              <span>WPM: <b style={{ color: '#22c55e' }}>{stats.dailyBestWpm}</b></span>
+            </div>
+          )}
+          <button
+            class="arena-btn-primary"
+            style={{ width: '100%' }}
+            onClick={() => startNewGame(true)}
+          >
+            {dailyDone ? '↺ Replay Daily' : '▶ Play Daily Challenge'}
+          </button>
+        </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 340 }}>
           <div class="arena-idle-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <InfoChip icon="🌊" label="9 Waves" sub="25s each" />
@@ -142,9 +187,34 @@ function IdleScreen() {
             <InfoChip icon="⚡" label="Combo" sub="streak bonus" />
             <InfoChip icon="⏱" label="8 min" sub="max duration" />
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button class="arena-btn-primary" style={{ flex: 1 }} onClick={startNewGame}>
-              ▶ Start Practice
+          {/* Difficulty */}
+          <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+            {(['easy','normal','hard','expert'] as Difficulty[]).map(d => (
+              <button
+                key={d}
+                onClick={() => { soloDifficulty.value = d; }}
+                style={{
+                  flex: 1,
+                  padding: '5px 4px',
+                  fontSize: 11,
+                  fontFamily: 'var(--font-ui)',
+                  fontWeight: soloDifficulty.value === d ? 800 : 400,
+                  border: `1px solid ${soloDifficulty.value === d ? 'var(--c-accent)' : 'var(--c-border)'}`,
+                  borderRadius: 6,
+                  background: soloDifficulty.value === d ? 'color-mix(in srgb, var(--c-accent) 15%, var(--c-surface))' : 'var(--c-btn)',
+                  color: soloDifficulty.value === d ? 'var(--c-accent)' : 'var(--c-muted)',
+                  cursor: 'pointer',
+                  textTransform: 'capitalize',
+                  transition: 'all 0.12s',
+                }}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button class="arena-btn-primary" style={{ flex: 1, background: 'var(--c-btn)', color: 'var(--c-text)', border: '1px solid var(--c-border)' }} onClick={() => startNewGame(false)}>
+              ▶ Free Practice
             </button>
             <button
               class="btn-icon"
@@ -623,8 +693,16 @@ function GameOverScreen() {
       accuracy,
       score,
       isWin: survived,
-      promptId: 'solo',
+      promptId: soloIsDailyChallenge.value ? `daily-${todayStr()}` : 'solo',
     });
+    if (soloIsDailyChallenge.value) {
+      const name = arenaPlayerName.value || 'Anonymous';
+      recordDailyScore(name, wpm, score, accuracy);
+      if (!newAchievements.includes('daily')) {
+        const daily = ACHIEVEMENTS.find(a => a.id === 'daily');
+        if (daily) showToast(`${daily.icon} Daily Challenge complete!`, 'success', 3000);
+      }
+    }
     const didLevelUp = playerLevel.value !== prevLevel;
     const toastDelay = didLevelUp ? 2400 : 0;
     newAchievements.forEach((id, i) => {
@@ -649,7 +727,7 @@ function GameOverScreen() {
       </div>
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <button class="arena-btn-primary" onClick={startNewGame}>▶ Play Again</button>
+        <button class="arena-btn-primary" onClick={() => startNewGame(soloIsDailyChallenge.value)}>▶ Play Again</button>
         <button class="btn-icon" style={{ padding: '10px 20px', fontSize: 14 }} onClick={resetSolo}>
           ← Back
         </button>

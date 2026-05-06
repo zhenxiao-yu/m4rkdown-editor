@@ -4,12 +4,12 @@ import {
   arenaError, arenaConnecting, arenaPublicRooms,
   arenaPlayerName, arenaIsHost, arenaPlayerColor, generateRoomCode,
 } from '@/store/arena';
-import { playerStats, playerLevel, playerXpInfo } from '@/store/arena-stats';
+import { playerStats, playerLevel, playerXpInfo, ACHIEVEMENTS, type HistoryEntry } from '@/store/arena-stats';
 import { connectToRoom, connectToBrowse, sendMsg } from '@/lib/partykit-client';
 import { customWordList } from '@/store/custom-words';
 import { SoloPracticeView } from './SoloPracticeView';
 
-type HomeTab  = 'solo' | 'multi';
+type HomeTab  = 'solo' | 'multi' | 'achievements' | 'history';
 type MultiTab = 'create' | 'join' | 'browse';
 
 const homeTab = signal<HomeTab>('solo');
@@ -275,6 +275,102 @@ function PlayerProfileCard() {
   );
 }
 
+function GameHistoryPanel() {
+  const games: HistoryEntry[] = [...(playerStats.value.recentGames ?? [])].reverse();
+
+  if (games.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12, color: 'var(--c-muted)', fontFamily: 'var(--font-ui)' }}>
+        <div style={{ fontSize: 36 }}>🎮</div>
+        <div style={{ fontSize: 14, fontWeight: 700 }}>No games yet</div>
+        <div style={{ fontSize: 12 }}>Play a round to see your history here.</div>
+      </div>
+    );
+  }
+
+  function fmt(ts: number) {
+    const d = new Date(ts);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  }
+
+  return (
+    <div style={{ height: '100%', overflowY: 'auto', padding: '12px 16px' }}>
+      <div style={{ fontSize: 11, color: 'var(--c-muted)', fontFamily: 'var(--font-ui)', marginBottom: 10 }}>
+        Last {games.length} game{games.length !== 1 ? 's' : ''}
+      </div>
+      {games.map((g, i) => (
+        <div key={i} style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '10px 14px', marginBottom: 6,
+          borderRadius: 8,
+          border: '1px solid var(--c-border)',
+          background: 'var(--c-surface-alt)',
+          fontFamily: 'var(--font-ui)',
+        }}>
+          <span style={{ fontSize: 18 }}>{g.isWin ? '🏆' : g.mode === 'Daily' ? '📅' : '💀'}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--c-text)' }}>{g.mode}</span>
+              {g.isWin && <span style={{ fontSize: 10, color: '#22c55e', fontWeight: 700 }}>WIN</span>}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--c-muted)' }}>{fmt(g.ts)}</div>
+          </div>
+          <div style={{ display: 'flex', gap: 14, flexShrink: 0 }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: g.wpm >= 60 ? '#22c55e' : g.wpm >= 30 ? '#f59e0b' : '#ef4444', fontFamily: 'var(--font-mono)' }}>{g.wpm}</div>
+              <div style={{ fontSize: 9, color: 'var(--c-muted)', textTransform: 'uppercase' }}>WPM</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: g.accuracy >= 95 ? '#22c55e' : g.accuracy >= 80 ? '#f59e0b' : '#ef4444', fontFamily: 'var(--font-mono)' }}>{g.accuracy}%</div>
+              <div style={{ fontSize: 9, color: 'var(--c-muted)', textTransform: 'uppercase' }}>ACC</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--c-accent)', fontFamily: 'var(--font-mono)' }}>{g.score.toLocaleString()}</div>
+              <div style={{ fontSize: 9, color: 'var(--c-muted)', textTransform: 'uppercase' }}>PTS</div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AchievementGallery() {
+  const unlocked = playerStats.value.achievementsUnlocked;
+  const unlockedCount = unlocked.length;
+
+  return (
+    <div style={{ height: '100%', overflowY: 'auto', padding: '16px 20px' }}>
+      <div style={{ fontSize: 12, color: 'var(--c-muted)', fontFamily: 'var(--font-ui)', marginBottom: 16, textAlign: 'center' }}>
+        {unlockedCount} / {ACHIEVEMENTS.length} unlocked
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+        {ACHIEVEMENTS.map(a => {
+          const done = unlocked.includes(a.id);
+          return (
+            <div
+              key={a.id}
+              style={{
+                padding: '12px 14px',
+                borderRadius: 10,
+                border: `1px solid ${done ? 'var(--c-accent)' : 'var(--c-border)'}`,
+                background: done ? 'color-mix(in srgb, var(--c-accent) 8%, var(--c-surface))' : 'var(--c-surface-alt)',
+                opacity: done ? 1 : 0.5,
+                transition: 'opacity 0.2s, border-color 0.2s',
+              }}
+              title={a.desc}
+            >
+              <div style={{ fontSize: 24, marginBottom: 6 }}>{done ? a.icon : '🔒'}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: done ? 'var(--c-text)' : 'var(--c-muted)', fontFamily: 'var(--font-ui)', marginBottom: 2 }}>{a.title}</div>
+              <div style={{ fontSize: 10, color: 'var(--c-muted)', fontFamily: 'var(--font-ui)', lineHeight: 1.4 }}>{a.desc}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function HomeView() {
   const current = homeTab.value;
   return (
@@ -283,13 +379,17 @@ export function HomeView() {
 
       {/* Mode nav */}
       <div class="arena-mode-nav">
-        <button class={`arena-mode-pill${current === 'solo'  ? ' active' : ''}`} onClick={() => { homeTab.value = 'solo';  }}>⚡ Solo Practice</button>
-        <button class={`arena-mode-pill${current === 'multi' ? ' active' : ''}`} onClick={() => { homeTab.value = 'multi'; }}>⚔️ Multiplayer</button>
+        <button class={`arena-mode-pill${current === 'solo'         ? ' active' : ''}`} onClick={() => { homeTab.value = 'solo';         }}>⚡ Solo</button>
+        <button class={`arena-mode-pill${current === 'multi'        ? ' active' : ''}`} onClick={() => { homeTab.value = 'multi';        }}>⚔️ Multi</button>
+        <button class={`arena-mode-pill${current === 'achievements' ? ' active' : ''}`} onClick={() => { homeTab.value = 'achievements'; }}>🏆 Trophies</button>
+        <button class={`arena-mode-pill${current === 'history'      ? ' active' : ''}`} onClick={() => { homeTab.value = 'history';      }}>📋 History</button>
       </div>
 
       <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        {current === 'solo'  && <SoloPracticeView />}
-        {current === 'multi' && <MultiplayerHub />}
+        {current === 'solo'         && <SoloPracticeView />}
+        {current === 'multi'        && <MultiplayerHub />}
+        {current === 'achievements' && <AchievementGallery />}
+        {current === 'history'      && <GameHistoryPanel />}
       </div>
     </div>
   );
