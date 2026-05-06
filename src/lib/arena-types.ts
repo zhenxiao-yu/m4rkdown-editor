@@ -41,6 +41,7 @@ export type ClientMsg =
 export type ServerMsg =
   | { type: 'welcome';       playerId: string; roomId: string; isPublic: boolean }
   | { type: 'roster';        players: SurvivalPlayer[]; hostId: string }
+  | { type: 'host_changed';  newHostId: string }
   | { type: 'countdown';     startsAt: number }
   | { type: 'game_start';    seed: number; startTime: number; wordQueue: WordDef[] }
   | { type: 'word_claimed';  wordId: string; playerId: string }

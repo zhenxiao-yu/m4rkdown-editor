@@ -127,7 +127,13 @@ export function handleServerMessage(msg: ServerMsg): void {
       batch(() => {
         arenaPlayers.value = msg.players;
         arenaHostId.value  = msg.hostId;
+        arenaIsHost.value  = msg.hostId === arenaPlayerId.value;
       });
+      break;
+
+    case 'host_changed':
+      arenaHostId.value  = msg.newHostId;
+      arenaIsHost.value  = msg.newHostId === arenaPlayerId.value;
       break;
 
     case 'countdown':

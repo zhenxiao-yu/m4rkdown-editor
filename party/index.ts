@@ -8,6 +8,12 @@ const PLAYER_HP      = 5;
 
 type Phase = 'lobby' | 'countdown' | 'playing' | 'game_over';
 
+interface DisconnectedPlayer {
+  player:  SurvivalPlayer;
+  leftAt:  number;
+  prevId:  string; // conn.id at time of disconnect
+}
+
 interface RoomState {
   phase:          Phase;
   hostId:         string;
@@ -21,6 +27,7 @@ interface RoomState {
   deathCount:     number;
   gameTimeout:    ReturnType<typeof setTimeout> | null;
   customWordsB64: string | null;
+  recentlyLeft:   Map<string, DisconnectedPlayer>; // name → state, for reconnect window
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -55,6 +62,7 @@ export default class SurvivalRoom implements Party.Server {
       missedWords: new Set(), claimedWords: new Map(),
       seed: Math.floor(Math.random() * 0xFFFFFF),
       startTime: null, deathCount: 0, gameTimeout: null, customWordsB64: null,
+      recentlyLeft: new Map(),
     };
   }
 
@@ -78,14 +86,23 @@ export default class SurvivalRoom implements Party.Server {
 
   onClose(conn: Party.Connection) {
     const { state } = this;
-    if (!state.players.has(conn.id)) return;
+    const player = state.players.get(conn.id);
+    if (!player) return;
+
+    // Preserve state for 30-second reconnect window during active game
+    if (state.phase === 'playing') {
+      state.recentlyLeft.set(player.name, { player: { ...player }, leftAt: Date.now(), prevId: conn.id });
+    }
 
     state.players.delete(conn.id);
 
     if (state.hostId === conn.id) {
       const next = [...state.players.values()][0];
-      if (!next) return;
+      if (!next) { broadcastAll(this.room, rosterMsg(state)); return; }
       state.hostId = next.id;
+      // Notify the new host explicitly so their client sets arenaIsHost
+      const newHostConn = this.room.getConnection(next.id);
+      if (newHostConn) send(newHostConn, { type: 'host_changed', newHostId: next.id });
     }
 
     if (state.phase === 'playing') this.checkGameOver();
@@ -105,16 +122,43 @@ export default class SurvivalRoom implements Party.Server {
   private handleJoin(msg: Extract<ClientMsg, { type: 'join' }>, conn: Party.Connection) {
     const { state } = this;
 
+    // ── Rejoin: player reconnecting within the 30-second window ──────────
+    const prev = state.recentlyLeft.get(msg.playerName);
+    if (prev && Date.now() - prev.leftAt < 30_000) {
+      state.recentlyLeft.delete(msg.playerName);
+      const restored: SurvivalPlayer = { ...prev.player, id: conn.id };
+      state.players.set(conn.id, restored);
+      if (state.hostId === prev.prevId) state.hostId = conn.id;
+      send(conn, { type: 'welcome', playerId: conn.id, roomId: msg.roomId, isPublic: state.isPublic });
+      // Resend game state so the reconnecting client can resume
+      if (state.phase === 'playing' && state.startTime !== null) {
+        let customWords: string[] | undefined;
+        if (state.customWordsB64) {
+          try { customWords = atob(state.customWordsB64).split(',').filter(Boolean); } catch { /* ignore */ }
+        }
+        send(conn, { type: 'game_start', seed: state.seed, startTime: state.startTime, wordQueue: generateWordQueue(state.seed, customWords) });
+      }
+      broadcastAll(this.room, rosterMsg(state));
+      return;
+    }
+
+    // Clean up stale reconnect slots
+    const now = Date.now();
+    for (const [name, d] of state.recentlyLeft) {
+      if (now - d.leftAt > 30_000) state.recentlyLeft.delete(name);
+    }
+
+    // ── Regular join ──────────────────────────────────────────────────────
     if (state.players.size >= MAX_PLAYERS) {
-      send(conn, { type: 'error', code: 'ROOM_FULL', message: 'Room is full (max 8 players).' }); return;
+      send(conn, { type: 'error', code: 'ROOM_FULL', message: `Room is full — ${MAX_PLAYERS} players max. Ask the host to start a new room.` }); return;
     }
     if (state.phase !== 'lobby') {
-      send(conn, { type: 'error', code: 'GAME_IN_PROGRESS', message: 'A game is in progress.' }); return;
+      send(conn, { type: 'error', code: 'GAME_IN_PROGRESS', message: 'A game is already in progress. Wait for it to finish or ask the host for a new code.' }); return;
     }
 
     const nameTaken = [...state.players.values()].some(p => p.name === msg.playerName);
     if (nameTaken) {
-      send(conn, { type: 'error', code: 'NAME_TAKEN', message: `"${msg.playerName}" is taken.` }); return;
+      send(conn, { type: 'error', code: 'NAME_TAKEN', message: `The name "${msg.playerName}" is already taken in this room. Try a different name.` }); return;
     }
 
     if (msg.isHost && !state.hostId) {

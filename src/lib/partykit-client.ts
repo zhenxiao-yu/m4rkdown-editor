@@ -9,6 +9,7 @@ let socket: PartySocket | null = null;
 let reconnectAttempts = 0;
 let lastRoomId: string | null = null;
 let currentSocketId = 0;
+let lastJoinMsg: Extract<ClientMsg, { type: 'join' }> | null = null;
 
 export function connectToRoom(roomId: string): void {
   lastRoomId = roomId;
@@ -24,6 +25,14 @@ function _doConnect(roomId: string, expectedId: number): void {
     s.close();
   }
   socket = new PartySocket({ host: PARTYKIT_HOST, room: roomId });
+
+  // Auto-rejoin after reconnect: resend the last join message once connected
+  socket.addEventListener('open', () => {
+    if (currentSocketId !== expectedId) return;
+    if (reconnectAttempts > 0 && lastJoinMsg) {
+      socket!.send(JSON.stringify(lastJoinMsg));
+    }
+  });
 
   socket.addEventListener('message', (evt: MessageEvent) => {
     if (currentSocketId !== expectedId) return;
@@ -73,12 +82,14 @@ export function connectToBrowse(): void {
 
 export function sendMsg(msg: ClientMsg): void {
   if (!socket) return;
+  if (msg.type === 'join') lastJoinMsg = msg;
   // PartySocket buffers sends while CONNECTING — do not guard on readyState
   socket.send(JSON.stringify(msg));
 }
 
 export function disconnectFromRoom(): void {
   currentSocketId++; // invalidate any pending reconnect timeouts
+  lastJoinMsg = null;
   if (socket) {
     const s = socket;
     socket = null;   // null first so 'close' handler sees intentional close

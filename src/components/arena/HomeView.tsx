@@ -104,7 +104,14 @@ function MultiplayerHub() {
       </div>
 
       {err && (
-        <div class="arena-error-bar">{err}</div>
+        <div class="arena-error-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+          <span>{err}</span>
+          <button
+            onClick={() => { arenaError.value = null; arenaConnecting.value = false; }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', fontSize: 16, lineHeight: 1, padding: '0 2px', flexShrink: 0 }}
+            aria-label="Dismiss error"
+          >×</button>
+        </div>
       )}
 
       <div class="arena-mp-content">
