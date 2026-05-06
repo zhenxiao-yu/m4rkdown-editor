@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Live app
+    url: https://m4rkdown.is-a.dev
+    about: Try the app before reporting a bug.
+  - name: Discussions
+    url: https://github.com/zhenxiao-yu/m4rkdown-editor/discussions
+    about: Ask a question or share ideas in Discussions.

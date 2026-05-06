@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for changelog generation
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "M4rkdown ${{ github.ref_name }}"
+          generate_release_notes: true
+          body: |
+            ## M4rkdown ${{ github.ref_name }}
+
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for full release notes.
+
+            ### Install / Use
+            - **Web app**: [m4rkdown.is-a.dev](https://m4rkdown.is-a.dev)
+            - **Self-host**: clone the repo, `npm install && npm run build`
+
+            ---
+            *Auto-generated from commits since the last tag.*
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}

@@ -15,15 +15,12 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  NODE_VERSION: '24'
+  NODE_VERSION: '22'   # LTS — broad prebuilt binary support for native addons
   VERCEL_ORG_ID: team_N854M53gDdl6HNscNxNMTcmS
   VERCEL_PROJECT_ID: prj_MfXHjEwE3OilT3d6vpqc53HZaxxh
 
 jobs:
   # ── Build ─────────────────────────────────────────────────────────────
-  # Single build shared by all deploy jobs.
-  # vercel build pulls env vars from Vercel project settings so the
-  # same artifact is deployed everywhere with no rebuild.
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -42,6 +39,11 @@ jobs:
 
       - name: Test
         run: npm test
+
+      # Generate static assets — graceful fallback if native addons unavailable
+      - name: Generate assets
+        run: node scripts/gen-icons.mjs; node scripts/gen-og.mjs
+        continue-on-error: true
 
       - name: Pull Vercel environment
         run: npx vercel pull --yes --environment=production --token ${{ secrets.VERCEL_TOKEN }}
@@ -93,10 +95,16 @@ jobs:
         uses: actions/deploy-pages@v4
 
   # ── Deploy: PartyKit ──────────────────────────────────────────────────
+  # Only runs when server-side files change (avoids redundant deploys)
   deploy-partykit:
     name: Deploy → PartyKit
     needs: build
     runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      contains(toJson(github.event.commits), '"party/') ||
+      contains(toJson(github.event.commits), '"src/lib/arena-types') ||
+      contains(toJson(github.event.commits), '"src/lib/game-engine')
     steps:
       - uses: actions/checkout@v4
 

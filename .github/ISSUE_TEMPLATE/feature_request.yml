@@ -1,0 +1,60 @@
+name: Feature Request
+description: Suggest a new feature or improvement.
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Got an idea to make M4rkdown better? Describe it here.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: A clear description of the gap or friction you experience today.
+      placeholder: "I keep having to... / There's no way to..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What would the feature look like? How would a user interact with it?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered
+      description: Any workarounds you currently use, or other ways the feature could work.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Editor / toolbar
+        - Preview pane
+        - Typing Arena
+        - Export
+        - Collaboration
+        - PWA / offline
+        - Settings
+        - Performance
+        - Accessibility
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: This is a single, focused feature (not a grab-bag of requests).
+          required: true
