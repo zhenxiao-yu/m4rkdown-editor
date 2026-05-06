@@ -32,7 +32,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - name: Install dependencies
+        run: npm install --prefer-offline
 
       - name: Type check
         run: npm run typecheck
@@ -113,7 +114,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - run: npm ci
+      - run: npm install --prefer-offline
 
       - name: Deploy PartyKit server
         run: npx partykit deploy
