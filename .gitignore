@@ -1,27 +1,56 @@
-logs
+# Logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-node_modules
-dist
-release
-build
+# Dependencies and build output
+node_modules/
+dist/
+release/
+build/
+coverage/
+playwright-report/
+test-results/
 *.local
 *.lock
 
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Editors and generated project files
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.vercel
-.claude/settings.json
-.claude/settings.local.json
+
+# Hosting and runtime output
+.vercel/
+.wrangler/
+.partykit/
 public/og.png
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Local AI / agent state
+.codex/
+.claude/
+.cursor/
+.windsurf/
+.continue/
+.aider*
+transcripts/
+chat-exports/
+session-logs/
+scratch/
