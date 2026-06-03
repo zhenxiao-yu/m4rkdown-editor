@@ -189,4 +189,4 @@ release is **3.1.0**.
 
 ## License
 
-[MIT](LICENSE) — © 2024–2026 Mark Yu · 于震潇
+Released under the [MIT License](LICENSE).

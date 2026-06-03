@@ -2,6 +2,7 @@
     "name": "m4rkdown",
     "private": true,
     "version": "3.1.0",
+    "license": "MIT",
     "description": "A fast, beautiful, standalone markdown editor",
     "type": "module",
     "scripts": {

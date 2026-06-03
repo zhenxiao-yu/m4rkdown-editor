@@ -1,28 +1,16 @@
 # Security Policy
 
-## Supported versions
+## Reporting a Vulnerability
 
-| Version | Supported |
-|---------|-----------|
-| Latest on `main` | Yes |
-| Older releases | No |
+Please report security vulnerabilities **privately** rather than opening a
+public issue:
 
-M4rkdown is a client-side PWA. There is no backend beyond the PartyKit arena server. The attack surface is limited to:
+- Open a private report via
+  [GitHub Security Advisories](../../security/advisories/new).
 
-- XSS via Markdown rendering (mitigated by DOMPurify on all rendered output)
-- WebSocket message injection in the arena (server validates all game messages)
-- Local storage data exposure (all data is local to the user's device)
+Include steps to reproduce, the impact, and the affected commit or version.
+I aim to acknowledge reports within 7 days and will keep you updated on the fix.
 
-## Reporting a vulnerability
+## Supported Versions
 
-**Please do not open a public GitHub issue for security vulnerabilities.**
-
-Email **markyu0615@gmail.com** with:
-
-1. A description of the vulnerability and its potential impact
-2. Steps to reproduce or a proof-of-concept
-3. Your suggested fix (optional but appreciated)
-
-You can expect an acknowledgement within **48 hours** and a fix or mitigation plan within **7 days** for confirmed vulnerabilities.
-
-We will credit you in the release notes unless you prefer to remain anonymous.
+This is a personal project; security fixes are applied to the latest `main`.
